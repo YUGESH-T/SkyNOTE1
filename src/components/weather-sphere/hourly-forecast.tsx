@@ -14,7 +14,7 @@ export default function HourlyForecast({ data }: HourlyForecastProps) {
         <CardTitle>Hourly Forecast</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="flex justify-between overflow-x-auto gap-4 pb-2">
+        <div className="flex justify-between overflow-x-auto gap-4 pb-2 no-scrollbar">
           {data.hourly.map((item) => (
             <div key={item.time} className="flex flex-col items-center space-y-2 p-3 rounded-lg bg-background/30 flex-shrink-0 transition-all duration-200 ease-in-out hover:bg-background/50 hover:scale-105 min-w-[80px]">
               <p className="font-medium text-muted-foreground">{item.time}</p>
