@@ -84,8 +84,7 @@ export default function WeatherDashboard() {
     <div className={`w-full max-w-7xl mx-auto p-4 md:p-6 rounded-2xl shadow-2xl bg-gradient-to-br ${backgroundClass} transition-all duration-1000 ${animationClass}`}>
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <div className={cn(
-          "lg:col-span-3 h-[400px] lg:h-[calc(100vh-100px)] relative rounded-lg transition-all duration-300",
-           currentWeather.condition !== 'Rainy' && "border-2 border-white/10 shadow-inner"
+          "lg:col-span-3 h-[400px] lg:h-auto bg-black/10 backdrop-blur-md border border-white/10 rounded-xl shadow-lg"
         )}>
           <WeatherVisualization 
             weatherCondition={currentWeather.condition} 
