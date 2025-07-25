@@ -120,7 +120,8 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
         currentMount.removeChild(stateRef.renderer.domElement);
       }
     };
-  }, [stateRef, weatherCondition]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const scene = stateRef.scene;
