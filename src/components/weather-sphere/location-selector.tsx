@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Search, Loader2 } from 'lucide-react';
 import { getLocationSuggestions } from '@/ai/flows/get-location-suggestions';
 import { useToast } from '@/hooks/use-toast';
-import { Card, CardContent } from '../ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface LocationSelectorProps {
   onLocationSearch: (location: string) => void;
