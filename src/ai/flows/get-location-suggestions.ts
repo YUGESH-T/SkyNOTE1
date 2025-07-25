@@ -33,9 +33,9 @@ const prompt = ai.definePrompt({
     input: { schema: GetLocationSuggestionsInputSchema },
     output: { schema: GetLocationSuggestionsOutputSchema },
     prompt: `You are a helpful assistant that provides city name suggestions for a weather app.
-The user is typing a city name and you need to provide a list of likely suggestions.
-If the input seems misspelled, provide corrected suggestions.
-Provide a list of up to 5 suggestions.
+The user is typing a city name and you need to provide a list of likely suggestions based on the provided list of known cities.
+The matching should be case-insensitive. If the input seems misspelled, provide corrected suggestions.
+Provide a list of up to 5 suggestions that are most relevant to the user's input.
 
 User input: {{{input}}}
 
@@ -55,6 +55,11 @@ const getLocationSuggestionsFlow = ai.defineFlow(
         return { suggestions: [] };
     }
     const {output} = await prompt(input);
+    if (output) {
+      // Filter suggestions to be more relevant to the input
+      const lowercasedInput = input.input.toLowerCase();
+      output.suggestions = output.suggestions.filter(s => s.toLowerCase().includes(lowercasedInput));
+    }
     return output!;
   }
 );

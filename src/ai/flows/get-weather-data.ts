@@ -66,7 +66,7 @@ function formatTimeFromTimestamp(timestamp: number, timezone: string): string {
 async function fetchFromWeatherbit(endpoint: string, params: Record<string, string>) {
     const apiKey = process.env.WEATHERBIT_API_KEY;
     if (!apiKey) {
-        throw new Error('WEATHERBIT_API_KEY is not set in the environment variables.');
+        throw new Error('WEATHERBIT_API_KEY is not set. Please add it to your .env file.');
     }
     const url = new URL(`https://api.weatherbit.io/v2.0/${endpoint}`);
     url.searchParams.append('key', apiKey);
@@ -76,7 +76,8 @@ async function fetchFromWeatherbit(endpoint: string, params: Record<string, stri
 
     const response = await fetch(url.toString());
     if (!response.ok) {
-        throw new Error(`Weatherbit API request failed with status ${response.status}: ${await response.text()}`);
+        const errorBody = await response.text();
+        throw new Error(`Weatherbit API request failed for endpoint '${endpoint}' with status ${response.status}: ${errorBody}`);
     }
     return response.json();
 }
@@ -102,6 +103,10 @@ const getWeatherDataFlow = ai.defineFlow(
         fetchFromWeatherbit('forecast/daily', { ...queryParams, days: '7' }),
         fetchFromWeatherbit('forecast/hourly', { ...queryParams, hours: '12' })
     ]);
+
+    if (!currentData.data || currentData.data.length === 0) {
+        throw new Error(`No current weather data found for the specified location.`);
+    }
 
     const current = currentData.data[0];
     const forecast = forecastData.data;
