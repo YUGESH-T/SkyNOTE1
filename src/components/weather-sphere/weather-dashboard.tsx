@@ -17,7 +17,13 @@ const weatherColorClasses = {
   Cloudy: "from-slate-400 to-gray-600",
   Rainy: "from-indigo-500 to-slate-800",
   Snowy: "from-blue-200 to-cyan-400",
+  Night: "from-gray-800 to-slate-900"
 };
+
+function getIsNight(currentTime: string, sunrise: string, sunset: string): boolean {
+  if (!currentTime || !sunrise || !sunset) return false;
+  return currentTime < sunrise || currentTime > sunset;
+}
 
 export default function WeatherDashboard() {
   const [currentWeather, setCurrentWeather] = useState<WeatherData>(locations[0]);
@@ -67,13 +73,19 @@ export default function WeatherDashboard() {
     );
   }
 
-  const backgroundClass = weatherColorClasses[currentWeather.condition] || "from-gray-400 to-gray-600";
-
+  const isNight = getIsNight(currentWeather.currentTime, currentWeather.sunrise, currentWeather.sunset);
+  const backgroundClass = isNight ? weatherColorClasses.Night : weatherColorClasses[currentWeather.condition] || "from-gray-400 to-gray-600";
+  
   return (
     <div className={`w-full max-w-7xl mx-auto p-4 md:p-6 rounded-2xl shadow-2xl bg-gradient-to-br ${backgroundClass} transition-all duration-1000 ${animationClass}`}>
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <div className="lg:col-span-3 h-[400px] lg:h-[calc(100vh-100px)] relative">
-          <WeatherVisualization weatherCondition={currentWeather.condition} />
+          <WeatherVisualization 
+            weatherCondition={currentWeather.condition} 
+            sunrise={currentWeather.sunrise}
+            sunset={currentWeather.sunset}
+            currentTime={currentWeather.currentTime}
+          />
           {isSearching && (
             <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
               <Loader2 className="h-12 w-12 animate-spin text-white" />

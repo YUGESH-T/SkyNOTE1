@@ -10,6 +10,9 @@ export interface WeatherData {
   feelsLike: number;
   humidity: number;
   windSpeed: number;
+  sunrise: string;
+  sunset: string;
+  currentTime: string;
   forecast: Forecast[];
   hourly: HourlyForecast[];
 }
@@ -44,6 +47,9 @@ export const locations: WeatherData[] = [
     feelsLike: 30,
     humidity: 55,
     windSpeed: 10,
+    sunrise: "06:00",
+    sunset: "20:30",
+    currentTime: "15:00",
     hourly: [
       { time: '3pm', condition: 'Sunny', temperature: 28, windSpeed: 12 },
       { time: '4pm', condition: 'Sunny', temperature: 27, windSpeed: 11 },
@@ -53,6 +59,10 @@ export const locations: WeatherData[] = [
       { time: '8pm', condition: 'Cloudy', temperature: 23, windSpeed: 9 },
       { time: '9pm', condition: 'Cloudy', temperature: 22, windSpeed: 10 },
       { time: '10pm', condition: 'Cloudy', temperature: 22, windSpeed: 11 },
+      { time: '11pm', condition: 'Rainy', temperature: 21, windSpeed: 12 },
+      { time: '12am', condition: 'Rainy', temperature: 21, windSpeed: 13 },
+      { time: '1am', condition: 'Rainy', temperature: 20, windSpeed: 14 },
+      { time: '2am', condition: 'Rainy', temperature: 20, windSpeed: 13 },
     ],
     forecast: [
       { day: 'Tue', condition: 'Sunny', tempHigh: 30, tempLow: 22, humidity: 55 },

@@ -23,6 +23,9 @@ const GetWeatherDataOutputSchema = z.object({
     feelsLike: z.number().describe("The 'feels like' temperature in Celsius, considering factors like humidity and wind."),
     humidity: z.number().describe("Humidity percentage."),
     windSpeed: z.number().describe("Wind speed in km/h."),
+    sunrise: z.string().describe("Sunrise time (e.g., '06:30')."),
+    sunset: z.string().describe("Sunset time (e.g., '19:45')."),
+    currentTime: z.string().describe("Current local time (e.g., '14:30')."),
     forecast: z.array(z.object({
         day: z.string().describe("Day of the week (e.g., 'Tue')."),
         condition: z.enum(['Sunny', 'Cloudy', 'Rainy', 'Snowy']),
@@ -45,6 +48,15 @@ function mapWeatherCondition(weatherbitCode: number): 'Sunny' | 'Cloudy' | 'Rain
     if (weatherbitCode >= 600 && weatherbitCode <= 623) return 'Snowy';
     if (weatherbitCode >= 200 && weatherbitCode <= 522) return 'Rainy';
     return 'Sunny'; // Default
+}
+
+function formatTimeFromTimestamp(timestamp: number, timezone: string): string {
+    return new Date(timestamp * 1000).toLocaleTimeString('en-US', {
+        timeZone: timezone,
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+    });
 }
 
 async function fetchFromWeatherbit(endpoint: string, params: Record<string, string>) {
@@ -90,6 +102,9 @@ const getWeatherDataFlow = ai.defineFlow(
         feelsLike: Math.round(current.app_temp),
         humidity: Math.round(current.rh),
         windSpeed: Math.round(current.wind_spd * 3.6),
+        sunrise: formatTimeFromTimestamp(current.sunrise_ts, current.timezone),
+        sunset: formatTimeFromTimestamp(current.sunset_ts, current.timezone),
+        currentTime: formatTimeFromTimestamp(current.ts, current.timezone),
         forecast: forecast.map((day: any) => ({
             day: new Date(day.valid_date).toLocaleDateString('en-US', { weekday: 'short' }),
             condition: mapWeatherCondition(day.weather.code),
