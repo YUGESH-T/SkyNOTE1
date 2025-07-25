@@ -14,8 +14,8 @@ export default function WeatherForecast({ data }: WeatherForecastProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {data.forecast.map((item) => (
-            <div key={item.day} className="flex items-center justify-between p-2 rounded-lg transition-all duration-200 ease-in-out hover:bg-background/30 hover:scale-[1.02]">
+          {data.forecast.map((item, index) => (
+            <div key={`${item.day}-${index}`} className="flex items-center justify-between p-2 rounded-lg transition-all duration-200 ease-in-out hover:bg-background/30 hover:scale-[1.02]">
               <p className="font-medium w-12">{item.day}</p>
               <WeatherIcon condition={item.condition} className="w-8 h-8 text-primary drop-shadow-lg" />
               <div className="flex items-center gap-2">
