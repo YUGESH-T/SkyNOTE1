@@ -11,15 +11,22 @@ import { Card, CardContent } from '@/components/ui/card';
 interface LocationSelectorProps {
   onLocationSearch: (location: string) => void;
   isLoading: boolean;
+  initialLocation?: string;
 }
 
-export default function LocationSelector({ onLocationSearch, isLoading }: LocationSelectorProps) {
-  const [location, setLocation] = useState('New York');
+export default function LocationSelector({ onLocationSearch, isLoading, initialLocation = '' }: LocationSelectorProps) {
+  const [location, setLocation] = useState(initialLocation);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const { toast } = useToast();
   const suggestionBoxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if(initialLocation) {
+        setLocation(initialLocation)
+    }
+  }, [initialLocation])
 
   const handleSearch = () => {
     if (location && !isLoading) {
@@ -93,6 +100,7 @@ export default function LocationSelector({ onLocationSearch, isLoading }: Locati
         <div className="relative flex-grow">
             <Input
               type="text"
+              placeholder="Enter a city"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               onKeyDown={handleKeyDown}

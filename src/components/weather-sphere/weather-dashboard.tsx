@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useEffect, useTransition, useCallback } from 'react';
-import { locations, type WeatherData } from '@/lib/weather-data';
+import { type WeatherData } from '@/lib/weather-data';
 import WeatherVisualization from './weather-visualization';
 import CurrentWeather from './current-weather';
 import WeatherForecast from './weather-forecast';
 import LocationSelector from './location-selector';
-import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getWeatherData } from '@/ai/flows/get-weather-data';
@@ -39,17 +38,23 @@ export default function WeatherDashboard() {
   const { toast } = useToast();
 
   const handleLocationSearch = useCallback((params: GetWeatherDataInput) => {
+    if (!params.location && !params.lat) return;
+    
     startSearching(async () => {
-      setAnimationClass('opacity-0');
+      if (currentWeather) {
+        setAnimationClass('opacity-0');
+      }
       try {
         const newWeather = await getWeatherData(params);
         setTimeout(() => {
             setCurrentWeather(newWeather);
             setAnimationClass('opacity-100');
+            if (params.location) {
              toast({
               title: `Weather updated for ${newWeather.location}`,
               description: `Currently ${newWeather.condition}, ${newWeather.temperature}°C.`,
             });
+           }
         }, 500)
       } catch (error) {
         console.error("Failed to fetch weather data:", error);
@@ -61,7 +66,7 @@ export default function WeatherDashboard() {
         setAnimationClass('opacity-100');
       }
     });
-  }, [toast]);
+  }, [toast, currentWeather]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -76,16 +81,15 @@ export default function WeatherDashboard() {
         toast({
             variant: "default",
             title: "Geolocation unavailable",
-            description: "Showing weather for New York.",
+            description: "Please enter a location to get weather information.",
         });
-        handleLocationSearch({ location: 'New York' });
       },
       { timeout: 10000 }
     );
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (!isMounted || !currentWeather) {
+  if (!isMounted) {
     return (
       <div className="w-full max-w-7xl h-screen flex items-center justify-center bg-gradient-to-br from-gray-800 to-slate-900">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -93,22 +97,22 @@ export default function WeatherDashboard() {
     );
   }
 
-  const isNight = getIsNight(currentWeather.currentTime, currentWeather.sunrise, currentWeather.sunset);
-  const backgroundClass = isNight ? weatherColorClasses.Night : weatherColorClasses[currentWeather.condition] || "from-gray-400 to-gray-600";
+  const isNight = currentWeather ? getIsNight(currentWeather.currentTime, currentWeather.sunrise, currentWeather.sunset) : false;
+  const backgroundClass = currentWeather ? (isNight ? weatherColorClasses.Night : weatherColorClasses[currentWeather.condition] || "from-gray-400 to-gray-600") : "from-gray-800 to-slate-900";
   
   return (
-    <div className={`w-full max-w-7xl mx-auto p-4 md:p-6 rounded-2xl shadow-2xl bg-gradient-to-br ${backgroundClass} transition-all duration-1000 ${animationClass}`}>
+    <div className={`w-full max-w-7xl mx-auto p-4 md:p-6 rounded-2xl shadow-2xl bg-gradient-to-br ${backgroundClass} transition-all duration-1000 ${currentWeather ? animationClass : 'opacity-100'}`}>
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <div className={cn(
           "lg:col-span-3 h-[400px] lg:h-auto bg-black/20 backdrop-blur-md shadow-lg",
-          currentWeather.condition !== 'Rainy' && 'border border-white/10 rounded-xl'
+          currentWeather?.condition !== 'Rainy' && 'border border-white/10 rounded-xl'
         )}>
-          <WeatherVisualization 
+          {currentWeather && <WeatherVisualization 
             weatherCondition={currentWeather.condition} 
             sunrise={currentWeather.sunrise}
             sunset={currentWeather.sunset}
             currentTime={currentWeather.currentTime}
-          />
+          />}
           {isSearching && (
             <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg z-10">
               <Loader2 className="h-12 w-12 animate-spin text-white" />
@@ -116,10 +120,19 @@ export default function WeatherDashboard() {
           )}
         </div>
         <div className="lg:col-span-2 flex flex-col gap-6">
-          <LocationSelector onLocationSearch={(location) => handleLocationSearch({ location })} isLoading={isSearching} />
-          <CurrentWeather data={currentWeather} />
-          <HourlyForecast data={currentWeather} />
-          <WeatherForecast data={currentWeather} />
+          <LocationSelector onLocationSearch={(location) => handleLocationSearch({ location })} isLoading={isSearching} initialLocation={currentWeather?.location} />
+          {currentWeather ? (
+            <>
+              <CurrentWeather data={currentWeather} />
+              <HourlyForecast data={currentWeather} />
+              <WeatherForecast data={currentWeather} />
+            </>
+          ): (
+            <div className="h-full flex flex-col items-center justify-center bg-card/30 backdrop-blur-sm border-white/20 shadow-lg rounded-lg p-8 mt-16">
+                <h2 className="text-2xl font-bold mb-2">Welcome to SKYNOTE</h2>
+                <p className="text-muted-foreground text-center">Enter a city to get the latest weather forecast and see a beautiful 3D visualization.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
