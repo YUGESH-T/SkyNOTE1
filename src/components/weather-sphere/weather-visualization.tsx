@@ -26,12 +26,15 @@ const getDaylightFactor = (currentTime: string, sunrise: string, sunset: string)
   
   if (now < rise || now > set) return 0; // Night
   const dayDuration = set - rise;
-  if (dayDuration <= 0) return 0;
+  if (dayDuration <= 0) return 0.5;
 
   const midday = rise + dayDuration / 2;
   const timeFromMidday = Math.abs(now - midday);
   
-  return 1 - (timeFromMidday / (dayDuration / 2));
+  // A value from 0 (sunrise/sunset) to 1 (midday)
+  const daylight = 1 - (timeFromMidday / (dayDuration / 2));
+  // Clamp to make transitions smoother near ends
+  return Math.sin(daylight * Math.PI / 2);
 };
 
 export default function WeatherVisualization({ weatherCondition, sunrise, sunset, currentTime }: WeatherVisualizationProps) {
@@ -67,21 +70,24 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
     stateRef.controls.enableDamping = true;
     stateRef.controls.enableZoom = false;
     stateRef.controls.autoRotate = true;
-    stateRef.controls.autoRotateSpeed = 0.5;
+    stateRef.controls.autoRotateSpeed = 0.2;
+    stateRef.controls.maxPolarAngle = Math.PI / 2 + 0.3;
+    stateRef.controls.minPolarAngle = Math.PI / 2 - 0.3;
+
 
     // Animation loop
     const animate = () => {
       if (!stateRef.renderer || !stateRef.scene || !stateRef.camera || !stateRef.controls) return;
       
       const delta = stateRef.clock.getDelta();
+      const elapsedTime = stateRef.clock.elapsedTime;
       
       // Particle animation
       if (stateRef.particles) {
-        stateRef.particles.rotation.y += delta * 0.1;
         const positions = stateRef.particles.geometry.getAttribute('position');
         for (let i = 0; i < positions.count; i++) {
           let y = positions.getY(i);
-          y -= 0.1;
+          y -= (weatherCondition === 'Snowy' ? 0.02 : 0.1);
           if (y < -10) y = 10;
           positions.setY(i, y);
         }
@@ -90,12 +96,16 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
 
       // Main object animation
       if (stateRef.weatherGroup) {
-         if (weatherCondition === 'Sunny') {
-            stateRef.weatherGroup.rotation.y += delta * 0.1;
+         if (weatherCondition === 'Sunny' && stateRef.weatherGroup.children[0]) {
+             const sun = stateRef.weatherGroup.children[0] as THREE.Mesh;
+             sun.scale.setScalar(Math.sin(elapsedTime * 2) * 0.02 + 1);
          }
          if (weatherCondition === 'Cloudy') {
             stateRef.weatherGroup.children.forEach((cloud, i) => {
-                cloud.position.x += Math.sin(stateRef.clock.elapsedTime + i) * 0.001;
+                cloud.rotation.y += delta * 0.05 * (i % 2 === 0 ? 1 : -1);
+                cloud.children.forEach((part, j) => {
+                    part.position.y += Math.sin(elapsedTime * 2 + j) * 0.001;
+                })
             })
          }
       }
@@ -140,21 +150,24 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
 
     // Lighting
     scene.clear();
-    const ambientLight = new THREE.AmbientLight(0xffffff, daylight * 0.5 + 0.1);
+    const ambientLight = new THREE.AmbientLight(0xffffff, daylight * 0.4 + 0.1);
     scene.add(ambientLight);
-    const directionalLight = new THREE.DirectionalLight(isNight ? 0x6c7a9a : 0xfff4e0, daylight * 0.8 + 0.2);
+    
+    const directionalLight = new THREE.DirectionalLight(0xffffff, daylight * 0.8 + 0.2);
     directionalLight.position.set(5, 10, 7);
+    directionalLight.castShadow = true;
     scene.add(directionalLight);
 
     switch (weatherCondition) {
       case 'Sunny': {
-        const sunGeom = new THREE.IcosahedronGeometry(3, 8);
+        const sunGeom = new THREE.IcosahedronGeometry(2.5, 15);
         const sunMat = new THREE.MeshStandardMaterial({
-          color: isNight ? 0xddeeff : 0xffdd00,
-          emissive: isNight ? 0xddeeff : 0xffdd00,
-          emissiveIntensity: 0.8,
-          metalness: 0.2,
-          roughness: 0.3,
+          color: isNight ? 0xddeeff : 0xffcc33,
+          emissive: isNight ? 0x8899cc : 0xffaa00,
+          emissiveIntensity: isNight ? 0.3 : 0.6,
+          metalness: 0.1,
+          roughness: 0.2,
+          flatShading: true,
         });
         const sun = new THREE.Mesh(sunGeom, sunMat);
         stateRef.weatherGroup.add(sun);
@@ -162,44 +175,75 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
       }
       case 'Cloudy': {
         const cloudMaterial = new THREE.MeshStandardMaterial({
-          color: isNight ? 0x4a5468 : 0xf0f0f0,
+          color: isNight ? 0x48546c : 0xffffff,
+          opacity: 0.85,
           transparent: true,
-          opacity: 0.8,
-          roughness: 0.9,
+          roughness: 0.8,
+          flatShading: true
         });
-        for (let i = 0; i < 6; i++) {
-          const cloudSphere = new THREE.Mesh(new THREE.SphereGeometry(1.5, 16, 16), cloudMaterial);
-          cloudSphere.position.set(
-            (Math.random() - 0.5) * 5,
-            (Math.random() - 0.5) * 2,
-            (Math.random() - 0.5) * 4
+
+        for (let i = 0; i < 5; i++) {
+          const cloudGroup = new THREE.Group();
+          for (let j = 0; j < 6; j++) {
+            const partGeom = new THREE.IcosahedronGeometry(Math.random() * 0.8 + 0.5, 2);
+            const part = new THREE.Mesh(partGeom, cloudMaterial);
+            part.position.set(
+              (Math.random() - 0.5) * 2,
+              (Math.random() - 0.5) * 1,
+              (Math.random() - 0.5) * 1
+            );
+            part.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+            cloudGroup.add(part);
+          }
+          cloudGroup.position.set(
+            (Math.random() - 0.5) * 8,
+            Math.random() * 2 - 1,
+            (Math.random() - 0.5) * 4 - 2
           );
-          const scale = 1 + Math.random() * 0.5;
-          cloudSphere.scale.set(scale, scale * 0.7, scale);
-          stateRef.weatherGroup.add(cloudSphere);
+          stateRef.weatherGroup.add(cloudGroup);
         }
         break;
       }
       case 'Rainy':
       case 'Snowy': {
         const isSnow = weatherCondition === 'Snowy';
-        const particleCount = isSnow ? 500 : 1000;
+        const particleCount = isSnow ? 1500 : 2000;
         const positions = [];
         for (let i = 0; i < particleCount; i++) {
-          positions.push((Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20);
+          positions.push((Math.random() - 0.5) * 30, (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20);
         }
         const geometry = new THREE.BufferGeometry();
         geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
         
         const material = new THREE.PointsMaterial({
-          color: isSnow ? 0xffffff : 0x88aaff,
-          size: isSnow ? 0.1 : 0.05,
+          color: isSnow ? 0xffffff : 0xaaccff,
+          size: isSnow ? 0.08 : 0.04,
           transparent: true,
-          opacity: 0.7,
+          opacity: 0.8,
+          blending: THREE.AdditiveBlending,
+          sizeAttenuation: true
         });
         
         stateRef.particles = new THREE.Points(geometry, material);
         scene.add(stateRef.particles);
+
+        // Add some subtle clouds for atmosphere
+        const cloudMaterial = new THREE.MeshStandardMaterial({
+          color: isNight ? 0x3a4458 : 0xaaaaaa,
+          opacity: 0.5,
+          transparent: true,
+          roughness: 0.9,
+        });
+        for (let i = 0; i < 3; i++) {
+           const cloudSphere = new THREE.Mesh(new THREE.SphereGeometry(3, 16, 16), cloudMaterial);
+           cloudSphere.position.set(
+             (Math.random() - 0.5) * 10,
+             2 + (Math.random() - 0.5) * 2,
+             (Math.random() - 0.5) * 6 - 3
+           );
+           cloudSphere.scale.set(1.5, 0.8, 1.2);
+           stateRef.weatherGroup.add(cloudSphere);
+        }
         break;
       }
     }
@@ -207,5 +251,5 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
 
   }, [weatherCondition, sunrise, sunset, currentTime, stateRef]);
 
-  return <div ref={mountRef} className="w-full h-full" />;
+  return <div ref={mountRef} className="w-full h-full rounded-lg overflow-hidden" />;
 }

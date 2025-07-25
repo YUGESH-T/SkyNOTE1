@@ -11,6 +11,7 @@ import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getWeatherData } from '@/ai/flows/get-weather-data';
 import HourlyForecast from './hourly-forecast';
+import { cn } from '@/lib/utils';
 
 const weatherColorClasses = {
   Sunny: "from-sky-400 to-blue-600",
@@ -82,7 +83,10 @@ export default function WeatherDashboard() {
   return (
     <div className={`w-full max-w-7xl mx-auto p-4 md:p-6 rounded-2xl shadow-2xl bg-gradient-to-br ${backgroundClass} transition-all duration-1000 ${animationClass}`}>
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <div className="lg:col-span-3 h-[400px] lg:h-[calc(100vh-100px)] relative">
+        <div className={cn(
+          "lg:col-span-3 h-[400px] lg:h-[calc(100vh-100px)] relative rounded-lg transition-all duration-300",
+           currentWeather.condition !== 'Rainy' && "border-2 border-white/10 shadow-inner"
+        )}>
           <WeatherVisualization 
             weatherCondition={currentWeather.condition} 
             sunrise={currentWeather.sunrise}
