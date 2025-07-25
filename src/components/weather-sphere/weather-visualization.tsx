@@ -227,22 +227,24 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
         stateRef.particles = new THREE.Points(geometry, material);
         scene.add(stateRef.particles);
 
-        // Add some subtle clouds for atmosphere
-        const cloudMaterial = new THREE.MeshStandardMaterial({
-          color: isNight ? 0x3a4458 : 0xaaaaaa,
-          opacity: 0.5,
-          transparent: true,
-          roughness: 0.9,
-        });
-        for (let i = 0; i < 3; i++) {
-           const cloudSphere = new THREE.Mesh(new THREE.SphereGeometry(3, 16, 16), cloudMaterial);
-           cloudSphere.position.set(
-             (Math.random() - 0.5) * 10,
-             2 + (Math.random() - 0.5) * 2,
-             (Math.random() - 0.5) * 6 - 3
-           );
-           cloudSphere.scale.set(1.5, 0.8, 1.2);
-           stateRef.weatherGroup.add(cloudSphere);
+        if (isSnow) {
+            // Add some subtle clouds for atmosphere in snow
+            const cloudMaterial = new THREE.MeshStandardMaterial({
+              color: isNight ? 0x3a4458 : 0xaaaaaa,
+              opacity: 0.5,
+              transparent: true,
+              roughness: 0.9,
+            });
+            for (let i = 0; i < 3; i++) {
+               const cloudSphere = new THREE.Mesh(new THREE.SphereGeometry(3, 16, 16), cloudMaterial);
+               cloudSphere.position.set(
+                 (Math.random() - 0.5) * 10,
+                 2 + (Math.random() - 0.5) * 2,
+                 (Math.random() - 0.5) * 6 - 3
+               );
+               cloudSphere.scale.set(1.5, 0.8, 1.2);
+               stateRef.weatherGroup.add(cloudSphere);
+            }
         }
         break;
       }
