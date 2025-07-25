@@ -69,9 +69,9 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
     stateRef.renderer.setPixelRatio(window.devicePixelRatio);
     currentMount.appendChild(stateRef.renderer.domElement);
 
-    stateRef.ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+    stateRef.ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     stateRef.scene.add(stateRef.ambientLight);
-    stateRef.directionalLight = new THREE.DirectionalLight(0xffffff, 0.9);
+    stateRef.directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
     stateRef.directionalLight.position.set(5, 10, 7.5);
     stateRef.scene.add(stateRef.directionalLight);
 
@@ -89,11 +89,12 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
 
       if (stateRef.weatherObject) {
          if (weatherCondition === 'Sunny') {
-            stateRef.weatherObject.scale.setScalar(1 + Math.sin(elapsedTime * 2) * 0.05);
+            stateRef.weatherObject.rotation.y += 0.005;
+            stateRef.weatherObject.scale.setScalar(1 + Math.sin(elapsedTime * 2) * 0.1);
         } else if (weatherCondition === 'Cloudy') {
             stateRef.weatherObject.children.forEach((cloud, index) => {
-                cloud.position.x += Math.sin(elapsedTime * 0.5 + index) * 0.005;
-                (cloud.material as THREE.MeshStandardMaterial).opacity = 0.8 + Math.sin(elapsedTime * 0.7 + index) * 0.1;
+                cloud.position.x += Math.sin(elapsedTime * 0.5 + index) * 0.01;
+                (cloud.material as THREE.MeshStandardMaterial).opacity = 0.7 + Math.sin(elapsedTime * 0.7 + index) * 0.1;
             });
         }
         stateRef.weatherObject.rotation.y += 0.002;
@@ -127,9 +128,9 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
     
     // Day/Night cycle
     const daylight = getDaylightFactor(currentTime, sunrise, sunset);
-    stateRef.ambientLight.intensity = THREE.MathUtils.lerp(0.1, 0.7, daylight);
-    stateRef.directionalLight.intensity = THREE.MathUtils.lerp(0.1, 0.9, daylight);
-    const nightColor = new THREE.Color(0x1a2a4a);
+    stateRef.ambientLight.intensity = THREE.MathUtils.lerp(0.1, 0.5, daylight);
+    stateRef.directionalLight.intensity = THREE.MathUtils.lerp(0.1, 0.8, daylight);
+    const nightColor = new THREE.Color(0x334466);
     const dayColor = new THREE.Color(0xffffff);
     stateRef.directionalLight.color.lerpColors(nightColor, dayColor, daylight);
 
@@ -144,14 +145,8 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
     switch (weatherCondition) {
       case 'Sunny': {
         const sunOrMoon = new THREE.Mesh(
-          new THREE.IcosahedronGeometry(1.5, 15),
-          new THREE.MeshStandardMaterial({ 
-              color: isNight ? 0xeaeaea : 0xffdd00, 
-              emissive: isNight ? 0xeaeaea : 0xffdd00, 
-              emissiveIntensity: isNight ? 0.4 : 0.8, 
-              metalness: 0.1, 
-              roughness: 0.3 
-            })
+          new THREE.IcosahedronGeometry(1.5, 8),
+          new THREE.MeshStandardMaterial({ color: isNight ? 0xeeeeff : 0xffcc00, emissive: isNight ? 0xeeeeff : 0xffcc00, emissiveIntensity: 0.6 })
         );
         scene.add(sunOrMoon);
         stateRef.weatherObject = sunOrMoon;
@@ -160,37 +155,31 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
       }
       case 'Cloudy': {
         const cloudGroup = new THREE.Group();
-        const cloudMaterial = new THREE.MeshStandardMaterial({ 
-            color: isNight ? 0x505060 : 0xf0f0f0, 
-            transparent: true, 
-            opacity: 0.75,
-            roughness: 0.9,
-            metalness: 0,
-        });
-        for (let i = 0; i < 6; i++) {
-          const cloudSphere = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 24), cloudMaterial);
+        const cloudMaterial = new THREE.MeshStandardMaterial({ color: isNight ? 0x666677 : 0xffffff, transparent: true, opacity: 0.7 });
+        for (let i = 0; i < 5; i++) {
+          const cloudSphere = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 16), cloudMaterial);
           const scale = 0.8 + Math.random() * 0.4;
-          cloudSphere.scale.set(scale, scale * 0.7, scale);
+          cloudSphere.scale.set(scale, scale * 0.6, scale);
           cloudSphere.position.set((Math.random() - 0.5) * 4, (Math.random() - 0.5) * 1, (Math.random() - 0.5) * 2 - 1);
           cloudGroup.add(cloudSphere);
         }
         scene.add(cloudGroup);
         stateRef.weatherObject = cloudGroup;
-        scene.fog = new THREE.Fog(isNight ? 0x111122 : 0xaaaaaa, 5, 15);
+        scene.fog = new THREE.Fog(isNight ? 0x222233 : 0xaaaaaa, 5, 15);
         break;
       }
       case 'Rainy':
       case 'Snowy': {
         const isSnow = weatherCondition === 'Snowy';
-        const particleGeometry = isSnow ? new THREE.SphereGeometry(0.04, 6, 6) : new THREE.CylinderGeometry(0.01, 0.01, 0.4, 6);
+        const particleGeometry = isSnow ? new THREE.SphereGeometry(0.05, 8, 8) : new THREE.CylinderGeometry(0.01, 0.01, 0.5, 8);
         const particleMaterial = new THREE.MeshBasicMaterial({ color: isSnow ? 0xffffff : 0xadd8e6 });
-        for (let i = 0; i < (isSnow ? 300 : 400); i++) {
+        for (let i = 0; i < (isSnow ? 200 : 300); i++) {
           const particle = new THREE.Mesh(particleGeometry, particleMaterial);
-          particle.position.set((Math.random() - 0.5) * 25, (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 15);
+          particle.position.set((Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 10);
           scene.add(particle);
           stateRef.particles.push(particle);
         }
-        scene.fog = new THREE.Fog(isNight ? 0x203040 : (isSnow ? 0xd0d0d0 : 0x506070), 3, 12);
+        scene.fog = new THREE.Fog(isNight ? 0x334455 : (isSnow ? 0xd0d0d0 : 0x8090a0), 3, 10);
         stateRef.weatherObject = null;
         break;
       }
