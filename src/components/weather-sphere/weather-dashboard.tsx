@@ -26,11 +26,13 @@ export default function WeatherDashboard() {
   const [isEnhancing, startEnhancing] = useTransition();
   const [enhancedTexture, setEnhancedTexture] = useState<string | null>(null);
   const [aiDescription, setAiDescription] = useState<string | null>(null);
+  const [animationClass, setAnimationClass] = useState('opacity-0');
 
   const { toast } = useToast();
 
   useEffect(() => {
     setIsMounted(true);
+    setAnimationClass('opacity-100');
     navigator.geolocation.getCurrentPosition(
       () => {
         toast({
@@ -49,9 +51,13 @@ export default function WeatherDashboard() {
   }, [toast]);
   
   const handleLocationChange = (location: WeatherData) => {
-    setCurrentWeather(location);
-    setEnhancedTexture(null);
-    setAiDescription(null);
+    setAnimationClass('opacity-0');
+    setTimeout(() => {
+        setCurrentWeather(location);
+        setEnhancedTexture(null);
+        setAiDescription(null);
+        setAnimationClass('opacity-100');
+    }, 500)
   };
 
   const handleEnhanceScene = () => {
@@ -104,7 +110,7 @@ export default function WeatherDashboard() {
   const backgroundClass = weatherColorClasses[currentWeather.condition] || "from-gray-400 to-gray-600";
 
   return (
-    <div className={`w-full max-w-7xl mx-auto p-4 md:p-6 rounded-2xl shadow-2xl bg-gradient-to-br ${backgroundClass} transition-colors duration-1000`}>
+    <div className={`w-full max-w-7xl mx-auto p-4 md:p-6 rounded-2xl shadow-2xl bg-gradient-to-br ${backgroundClass} transition-all duration-1000 ${animationClass}`}>
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <div className="lg:col-span-3 h-[400px] lg:h-[calc(100vh-100px)] relative">
           <WeatherVisualization weatherCondition={currentWeather.condition} enhancedTexture={enhancedTexture} />

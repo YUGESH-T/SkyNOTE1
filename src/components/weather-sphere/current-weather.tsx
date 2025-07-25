@@ -9,7 +9,7 @@ interface CurrentWeatherProps {
 
 export default function CurrentWeather({ data }: CurrentWeatherProps) {
   return (
-    <Card className="bg-card/30 backdrop-blur-sm border-white/20 shadow-lg">
+    <Card className="bg-card/30 backdrop-blur-sm border-white/20 shadow-lg transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-1">
       <CardHeader className="pb-2">
         <CardTitle className="text-2xl font-bold">{data.location}</CardTitle>
         <CardDescription>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</CardDescription>
