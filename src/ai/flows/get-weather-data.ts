@@ -10,65 +10,29 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { WeatherCondition, WeatherData, Forecast, HourlyForecast, locations } from '@/lib/weather-data';
 
 const GetWeatherDataInputSchema = z.object({
   location: z.string().describe('The city name to get weather data for (e.g., "London").'),
 });
 export type GetWeatherDataInput = z.infer<typeof GetWeatherDataInputSchema>;
 
-const weatherConditions: WeatherCondition[] = ['Sunny', 'Cloudy', 'Rainy', 'Snowy'];
-const days = ['Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Mon'];
-
-// Helper function to generate random weather data for a location
-function generateRandomWeatherData(location: string): WeatherData {
-    const condition: WeatherCondition = weatherConditions[Math.floor(Math.random() * weatherConditions.length)];
-    const temperature = Math.floor(Math.random() * 40) - 5; // -5 to 35
-    
-    const forecast: Forecast[] = days.map(day => ({
-        day,
-        condition: weatherConditions[Math.floor(Math.random() * weatherConditions.length)],
-        tempHigh: temperature + Math.floor(Math.random() * 5),
-        tempLow: temperature - Math.floor(Math.random() * 5),
-    }));
-
-    const hourly: HourlyForecast[] = [
-        { time: '3pm', condition, temperature },
-        { time: '4pm', condition, temperature: temperature - 1 },
-        { time: '5pm', condition: weatherConditions[Math.floor(Math.random() * weatherConditions.length)], temperature: temperature - 1 },
-        { time: '6pm', condition: weatherConditions[Math.floor(Math.random() * weatherConditions.length)], temperature: temperature - 2 },
-        { time: '7pm', condition: weatherConditions[Math.floor(Math.random() * weatherConditions.length)], temperature: temperature - 3 },
-    ];
-
-    return {
-        location,
-        condition,
-        temperature,
-        humidity: Math.floor(Math.random() * 50) + 50, // 50-100
-        windSpeed: Math.floor(Math.random() * 25) + 5, // 5-30
-        forecast,
-        hourly,
-    };
-}
-
-
 const GetWeatherDataOutputSchema = z.object({
     location: z.string(),
     condition: z.enum(['Sunny', 'Cloudy', 'Rainy', 'Snowy']),
-    temperature: z.number(),
-    humidity: z.number(),
-    windSpeed: z.number(),
+    temperature: z.number().describe("Temperature in Celsius."),
+    humidity: z.number().describe("Humidity percentage."),
+    windSpeed: z.number().describe("Wind speed in km/h."),
     forecast: z.array(z.object({
-        day: z.string(),
+        day: z.string().describe("Day of the week (e.g., 'Tue')."),
         condition: z.enum(['Sunny', 'Cloudy', 'Rainy', 'Snowy']),
-        tempHigh: z.number(),
-        tempLow: z.number(),
-    })),
+        tempHigh: z.number().describe("Highest temperature for the day in Celsius."),
+        tempLow: z.number().describe("Lowest temperature for the day in Celsius."),
+    })).length(7).describe("A 7-day weather forecast."),
     hourly: z.array(z.object({
-        time: z.string(),
+        time: z.string().describe("The hour for the forecast (e.g., '3pm')."),
         condition: z.enum(['Sunny', 'Cloudy', 'Rainy', 'Snowy']),
-        temperature: z.number(),
-    })),
+        temperature: z.number().describe("Temperature for the hour in Celsius."),
+    })).length(5).describe("A 5-hour weather forecast."),
 });
 export type GetWeatherDataOutput = z.infer<typeof GetWeatherDataOutputSchema>;
 
@@ -76,20 +40,23 @@ export async function getWeatherData(input: GetWeatherDataInput): Promise<GetWea
   return getWeatherDataFlow(input);
 }
 
+const prompt = ai.definePrompt({
+    name: 'getWeatherDataPrompt',
+    input: { schema: GetWeatherDataInputSchema },
+    output: { schema: GetWeatherDataOutputSchema },
+    prompt: `You are a weather API. Given a location, provide the current weather, a 5-hour forecast, and a 7-day forecast.
+The current day is Tuesday. The hourly forecast should start from 3pm. The 7-day forecast should start from today (Tuesday).
+Location: {{{location}}}`,
+});
+
 const getWeatherDataFlow = ai.defineFlow(
   {
     name: 'getWeatherDataFlow',
     inputSchema: GetWeatherDataInputSchema,
     outputSchema: GetWeatherDataOutputSchema,
   },
-  async ({ location }) => {
-    const existingLocation = locations.find(l => l.location.toLowerCase() === location.toLowerCase());
-    if (existingLocation) {
-        return existingLocation;
-    }
-    
-    // In a real application, you would call a weather API here.
-    // For this example, we will generate random data if location is not found.
-    return generateRandomWeatherData(location);
+  async (input) => {
+    const { output } = await prompt(input);
+    return output!;
   }
 );

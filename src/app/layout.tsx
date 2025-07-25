@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
-  title: 'WeatherSphere',
+  title: 'SKYNOTE',
   description: 'A 3D weather visualization application.',
 };
 

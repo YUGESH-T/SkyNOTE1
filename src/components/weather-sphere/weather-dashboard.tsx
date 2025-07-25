@@ -7,11 +7,9 @@ import CurrentWeather from './current-weather';
 import WeatherForecast from './weather-forecast';
 import LocationSelector from './location-selector';
 import { Button } from '@/components/ui/button';
-import { Loader2, Zap } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { generateWeatherAsset } from '@/ai/flows/generate-weather-asset';
 import { getWeatherData } from '@/ai/flows/get-weather-data';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import HourlyForecast from './hourly-forecast';
 
 const weatherColorClasses = {
@@ -24,17 +22,16 @@ const weatherColorClasses = {
 export default function WeatherDashboard() {
   const [currentWeather, setCurrentWeather] = useState<WeatherData>(locations[0]);
   const [isMounted, setIsMounted] = useState(false);
-  const [isEnhancing, startEnhancing] = useTransition();
   const [isSearching, startSearching] = useTransition();
-  const [enhancedTexture, setEnhancedTexture] = useState<string | null>(null);
-  const [aiDescription, setAiDescription] = useState<string | null>(null);
   const [animationClass, setAnimationClass] = useState('opacity-0');
 
   const { toast } = useToast();
 
   useEffect(() => {
+    handleLocationSearch(currentWeather.location);
     setIsMounted(true);
     setAnimationClass('opacity-100');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
   const handleLocationSearch = (location: string) => {
@@ -44,8 +41,6 @@ export default function WeatherDashboard() {
         const newWeather = await getWeatherData({ location });
         setTimeout(() => {
             setCurrentWeather(newWeather);
-            setEnhancedTexture(null);
-            setAiDescription(null);
             setAnimationClass('opacity-100');
              toast({
               title: `Weather updated for ${newWeather.location}`,
@@ -64,46 +59,6 @@ export default function WeatherDashboard() {
     });
   };
 
-  const handleEnhanceScene = () => {
-    startEnhancing(async () => {
-      setAiDescription(null);
-      try {
-        const result = await generateWeatherAsset({
-          weatherCondition: currentWeather.condition,
-          assetDescription: `A 3D scene representing ${currentWeather.condition} weather in ${currentWeather.location}.`,
-        });
-        
-        // This is a placeholder since the model can't generate actual 3D assets/textures
-        const canvas = document.createElement('canvas');
-        canvas.width = 256;
-        canvas.height = 256;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-            const gradient = ctx.createLinearGradient(0, 0, 0, 256);
-            gradient.addColorStop(0, '#87CEEB'); // Sky blue
-            gradient.addColorStop(1, '#F0F8FF'); // Alice blue
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, 256, 256);
-        }
-        const placeholderDataUri = canvas.toDataURL();
-        
-        setEnhancedTexture(placeholderDataUri);
-        setAiDescription(result.description || "Scene enhanced with AI-generated textures.");
-        toast({
-          title: "Scene Enhanced!",
-          description: "The 3D visualization has been updated.",
-        });
-      } catch (error) {
-        console.error("AI enhancement failed:", error);
-        toast({
-          variant: "destructive",
-          title: "Enhancement Failed",
-          description: "Could not generate AI enhancement. Please try again.",
-        });
-      }
-    });
-  };
-
   if (!isMounted) {
     return (
       <div className="w-full max-w-7xl h-screen flex items-center justify-center">
@@ -118,17 +73,7 @@ export default function WeatherDashboard() {
     <div className={`w-full max-w-7xl mx-auto p-4 md:p-6 rounded-2xl shadow-2xl bg-gradient-to-br ${backgroundClass} transition-all duration-1000 ${animationClass}`}>
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <div className="lg:col-span-3 h-[400px] lg:h-[calc(100vh-100px)] relative">
-          <WeatherVisualization weatherCondition={currentWeather.condition} enhancedTexture={enhancedTexture} />
-          <div className="absolute top-4 left-4">
-              <Button onClick={handleEnhanceScene} disabled={isEnhancing}>
-                  {isEnhancing ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                      <Zap className="mr-2 h-4 w-4" />
-                  )}
-                  Enhance Scene
-              </Button>
-          </div>
+          <WeatherVisualization weatherCondition={currentWeather.condition} />
           {isSearching && (
             <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
               <Loader2 className="h-12 w-12 animate-spin text-white" />
@@ -137,13 +82,6 @@ export default function WeatherDashboard() {
         </div>
         <div className="lg:col-span-2 flex flex-col gap-6">
           <LocationSelector onLocationSearch={handleLocationSearch} isLoading={isSearching} />
-          {aiDescription && (
-            <Alert>
-              <Zap className="h-4 w-4" />
-              <AlertTitle>AI Enhancement</AlertTitle>
-              <AlertDescription>{aiDescription}</AlertDescription>
-            </Alert>
-          )}
           <CurrentWeather data={currentWeather} />
           <HourlyForecast data={currentWeather} />
           <WeatherForecast data={currentWeather} />

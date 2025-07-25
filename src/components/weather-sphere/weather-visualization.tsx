@@ -6,10 +6,9 @@ import type { WeatherCondition } from '@/lib/weather-data';
 
 interface WeatherVisualizationProps {
   weatherCondition: WeatherCondition;
-  enhancedTexture: string | null;
 }
 
-export default function WeatherVisualization({ weatherCondition, enhancedTexture }: WeatherVisualizationProps) {
+export default function WeatherVisualization({ weatherCondition }: WeatherVisualizationProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const stateRef = useRef({
     scene: null as THREE.Scene | null,
@@ -126,17 +125,6 @@ export default function WeatherVisualization({ weatherCondition, enhancedTexture
       }
     }
   }, [weatherCondition, stateRef]);
-  
-  useEffect(() => {
-    if (enhancedTexture && stateRef.scene) {
-        const textureLoader = new THREE.TextureLoader();
-        textureLoader.load(enhancedTexture, (texture) => {
-            texture.mapping = THREE.EquirectangularReflectionMapping;
-            stateRef.scene!.background = texture;
-            stateRef.scene!.environment = texture;
-        });
-    }
-  }, [enhancedTexture, stateRef]);
 
   return <div ref={mountRef} className="w-full h-full rounded-lg shadow-inner bg-black/20" />;
 }
