@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useTransition, useCallback } from 'react';
@@ -51,12 +52,10 @@ export default function WeatherDashboard() {
         setTimeout(() => {
             setCurrentWeather(newWeather);
             setAnimationClass('opacity-100');
-            if (params.location) {
-             toast({
-              title: `Weather updated for ${newWeather.location}`,
+            toast({
+              title: `Updated for ${newWeather.location}`,
               description: `Currently ${newWeather.condition}, ${newWeather.temperature}°C.`,
             });
-           }
         }, 500)
       } catch (error: any) {
         console.error("Failed to fetch weather data:", error);
