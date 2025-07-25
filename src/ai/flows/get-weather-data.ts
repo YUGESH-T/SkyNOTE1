@@ -15,7 +15,7 @@ const GetWeatherDataInputSchema = z.object({
   location: z.string().optional().describe('The city name to get weather data for (e.g., "London").'),
   lat: z.number().optional().describe('The latitude.'),
   lon: z.number().optional().describe('The longitude.'),
-}).refine(data => data.location || (data.lat && data.lon), {
+}).refine(data => data.location || (typeof data.lat === 'number' && typeof data.lon === 'number'), {
     message: "Either location or both lat and lon must be provided.",
 });
 export type GetWeatherDataInput = z.infer<typeof GetWeatherDataInputSchema>;
@@ -42,7 +42,7 @@ const GetWeatherDataOutputSchema = z.object({
         condition: z.enum(['Sunny', 'Cloudy', 'Rainy', 'Snowy']),
         temperature: z.number().describe("Temperature for the hour in Celsius."),
         windSpeed: z.number().describe("Wind speed in km/h for the hour."),
-    })).length(24).describe("A 24-hour weather forecast."),
+    })).min(1).describe("A 24-hour weather forecast."),
 });
 export type GetWeatherDataOutput = z.infer<typeof GetWeatherDataOutputSchema>;
 
@@ -93,7 +93,7 @@ const getWeatherDataFlow = ai.defineFlow(
     const queryParams: Record<string, string> = {};
     if (location) {
         queryParams.city = location;
-    } else if (lat && lon) {
+    } else if (typeof lat === 'number' && typeof lon === 'number') {
         queryParams.lat = lat.toString();
         queryParams.lon = lon.toString();
     }

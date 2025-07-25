@@ -23,10 +23,8 @@ export default function LocationSelector({ onLocationSearch, isLoading, initialL
   const suggestionBoxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if(initialLocation) {
-        setLocation(initialLocation)
-    }
-  }, [initialLocation])
+    setLocation(initialLocation);
+  }, [initialLocation]);
 
   const handleSearch = () => {
     if (location && !isLoading) {
@@ -110,7 +108,7 @@ export default function LocationSelector({ onLocationSearch, isLoading, initialL
             />
             {isSuggesting && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 animate-spin" />}
         </div>
-        <Button type="submit" onClick={handleSearch} disabled={isLoading} className="h-12">
+        <Button type="submit" onClick={handleSearch} disabled={isLoading || !location} className="h-12">
           {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
         </Button>
       </div>

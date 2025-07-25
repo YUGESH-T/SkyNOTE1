@@ -7,7 +7,7 @@ import WeatherVisualization from './weather-visualization';
 import CurrentWeather from './current-weather';
 import WeatherForecast from './weather-forecast';
 import LocationSelector from './location-selector';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Compass } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getWeatherData } from '@/ai/flows/get-weather-data';
 import HourlyForecast from './hourly-forecast';
@@ -35,13 +35,12 @@ export default function WeatherDashboard() {
   const [isMounted, setIsMounted] = useState(false);
   const [isSearching, startSearching] = useTransition();
   const [animationClass, setAnimationClass] = useState('opacity-0');
-  const [geolocationDenied, setGeolocationDenied] = useState(false);
-
+  const [geolocationStatus, setGeolocationStatus] = useState<'pending' | 'success' | 'error'>('pending');
 
   const { toast } = useToast();
 
   const handleLocationSearch = useCallback((params: GetWeatherDataInput) => {
-    if (!params.location && !(params.lat && params.lon)) return;
+    if (!params.location && !(typeof params.lat === 'number' && typeof params.lon === 'number')) return;
     
     startSearching(async () => {
       if (currentWeather) {
@@ -64,7 +63,10 @@ export default function WeatherDashboard() {
           title: "Search Failed",
           description: error.message || "Could not fetch weather data for that location.",
         });
-        setAnimationClass('opacity-100');
+        // If there was previous data, make it visible again
+        if (currentWeather) {
+            setAnimationClass('opacity-100');
+        }
       }
     });
   }, [toast, currentWeather]);
@@ -76,10 +78,11 @@ export default function WeatherDashboard() {
       (position) => {
         const { latitude, longitude } = position.coords;
         handleLocationSearch({ lat: latitude, lon: longitude });
+        setGeolocationStatus('success');
       },
       (error) => {
         console.warn(`Geolocation error: ${error.message}`);
-        setGeolocationDenied(true);
+        setGeolocationStatus('error');
         if (error.code === error.PERMISSION_DENIED) {
              toast({
                 variant: "default",
@@ -110,8 +113,10 @@ export default function WeatherDashboard() {
   const isNight = currentWeather ? getIsNight(currentWeather.currentTime, currentWeather.sunrise, currentWeather.sunset) : false;
   const backgroundClass = currentWeather ? (isNight ? weatherColorClasses.Night : weatherColorClasses[currentWeather.condition] || "from-gray-400 to-gray-600") : "from-gray-800 to-slate-900";
   
+  const showWelcomeMessage = geolocationStatus === 'error' && !currentWeather;
+
   return (
-    <div className={`w-full max-w-7xl mx-auto p-4 md:p-6 rounded-2xl shadow-2xl bg-gradient-to-br ${backgroundClass} transition-all duration-1000 ${currentWeather || geolocationDenied ? animationClass : 'opacity-100'}`}>
+    <div className={`w-full max-w-7xl mx-auto p-4 md:p-6 rounded-2xl shadow-2xl bg-gradient-to-br ${backgroundClass} transition-all duration-1000 ${animationClass}`}>
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <div className={cn(
           "lg:col-span-3 h-[400px] lg:h-auto bg-black/20 backdrop-blur-md shadow-lg",
@@ -138,15 +143,19 @@ export default function WeatherDashboard() {
               <WeatherForecast data={currentWeather} />
             </>
           ): (
-            <div className="h-full flex flex-col items-center justify-center bg-card/30 backdrop-blur-sm border-white/20 shadow-lg rounded-lg p-8 mt-2">
-                 {isSearching ? (
-                     <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                 ) : (
+            <div className="h-full flex flex-col items-center justify-center bg-card/30 backdrop-blur-sm border-white/20 shadow-lg rounded-lg p-8 mt-2 text-center">
+                 {isSearching || geolocationStatus === 'pending' ? (
+                     <>
+                        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+                        <p className="text-muted-foreground">Fetching your local weather...</p>
+                     </>
+                 ) : showWelcomeMessage ? (
                     <>
+                        <Compass className="h-16 w-16 text-primary mb-4" />
                         <h2 className="text-2xl font-bold mb-2">Welcome to SKYNOTE</h2>
-                        <p className="text-muted-foreground text-center">Enter a city or allow location access to get the latest weather forecast and see a beautiful 3D visualization.</p>
+                        <p className="text-muted-foreground">Enter a city above to get the latest weather forecast and see a beautiful 3D visualization.</p>
                     </>
-                 )}
+                 ) : null}
             </div>
           )}
         </div>
