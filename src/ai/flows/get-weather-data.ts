@@ -9,6 +9,7 @@
  */
 
 import { ai } from '@/ai/genkit';
+import { locations } from '@/lib/weather-data';
 import { z } from 'genkit';
 
 const GetWeatherDataInputSchema = z.object({
@@ -57,6 +58,13 @@ const getWeatherDataFlow = ai.defineFlow(
     outputSchema: GetWeatherDataOutputSchema,
   },
   async (input) => {
+    const locationData = locations.find(
+      (l) => l.location.toLowerCase() === input.location.toLowerCase()
+    );
+    if (locationData) {
+      return locationData;
+    }
+
     const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     const { output } = await prompt({ ...input, currentDate });
     return output!;
