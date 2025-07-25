@@ -93,7 +93,6 @@ export default function LocationSelector({ onLocationSearch, isLoading }: Locati
         <div className="relative flex-grow">
             <Input
               type="text"
-              placeholder="Enter a city name..."
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               onKeyDown={handleKeyDown}
