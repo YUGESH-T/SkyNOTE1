@@ -12,7 +12,11 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
 const GetWeatherDataInputSchema = z.object({
-  location: z.string().describe('The city name to get weather data for (e.g., "London").'),
+  location: z.string().optional().describe('The city name to get weather data for (e.g., "London").'),
+  lat: z.number().optional().describe('The latitude.'),
+  lon: z.number().optional().describe('The longitude.'),
+}).refine(data => data.location || (data.lat && data.lon), {
+    message: "Either location or both lat and lon must be provided.",
 });
 export type GetWeatherDataInput = z.infer<typeof GetWeatherDataInputSchema>;
 
@@ -83,12 +87,20 @@ const getWeatherDataFlow = ai.defineFlow(
     inputSchema: GetWeatherDataInputSchema,
     outputSchema: GetWeatherDataOutputSchema,
   },
-  async ({ location }) => {
+  async ({ location, lat, lon }) => {
     
+    const queryParams: Record<string, string> = {};
+    if (location) {
+        queryParams.city = location;
+    } else if (lat && lon) {
+        queryParams.lat = lat.toString();
+        queryParams.lon = lon.toString();
+    }
+
     const [currentData, forecastData, hourlyData] = await Promise.all([
-        fetchFromWeatherbit('current', { city: location }),
-        fetchFromWeatherbit('forecast/daily', { city: location, days: '7' }),
-        fetchFromWeatherbit('forecast/hourly', { city: location, hours: '12' })
+        fetchFromWeatherbit('current', queryParams),
+        fetchFromWeatherbit('forecast/daily', { ...queryParams, days: '7' }),
+        fetchFromWeatherbit('forecast/hourly', { ...queryParams, hours: '12' })
     ]);
 
     const current = currentData.data[0];

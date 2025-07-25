@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, useCallback } from 'react';
 import { locations, type WeatherData } from '@/lib/weather-data';
 import WeatherVisualization from './weather-visualization';
 import CurrentWeather from './current-weather';
@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getWeatherData } from '@/ai/flows/get-weather-data';
 import HourlyForecast from './hourly-forecast';
 import { cn } from '@/lib/utils';
+import type {GetWeatherDataInput} from '@/ai/flows/get-weather-data'
 
 const weatherColorClasses = {
   Sunny: "from-sky-400 to-blue-600",
@@ -30,25 +31,18 @@ function getIsNight(currentTime: string, sunrise: string, sunset: string): boole
 }
 
 export default function WeatherDashboard() {
-  const [currentWeather, setCurrentWeather] = useState<WeatherData>(locations[0]);
+  const [currentWeather, setCurrentWeather] = useState<WeatherData | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [isSearching, startSearching] = useTransition();
   const [animationClass, setAnimationClass] = useState('opacity-0');
 
   const { toast } = useToast();
 
-  useEffect(() => {
-    handleLocationSearch(currentWeather.location);
-    setIsMounted(true);
-    setAnimationClass('opacity-100');
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  
-  const handleLocationSearch = (location: string) => {
+  const handleLocationSearch = useCallback((params: GetWeatherDataInput) => {
     startSearching(async () => {
       setAnimationClass('opacity-0');
       try {
-        const newWeather = await getWeatherData({ location });
+        const newWeather = await getWeatherData(params);
         setTimeout(() => {
             setCurrentWeather(newWeather);
             setAnimationClass('opacity-100');
@@ -67,11 +61,33 @@ export default function WeatherDashboard() {
         setAnimationClass('opacity-100');
       }
     });
-  };
+  }, [toast]);
 
-  if (!isMounted) {
+  useEffect(() => {
+    setIsMounted(true);
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        handleLocationSearch({ lat: latitude, lon: longitude });
+      },
+      (error) => {
+        console.warn(`Geolocation error: ${error.message}`);
+        toast({
+            variant: "default",
+            title: "Geolocation unavailable",
+            description: "Showing weather for New York.",
+        });
+        handleLocationSearch({ location: 'New York' });
+      },
+      { timeout: 10000 }
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (!isMounted || !currentWeather) {
     return (
-      <div className="w-full max-w-7xl h-screen flex items-center justify-center">
+      <div className="w-full max-w-7xl h-screen flex items-center justify-center bg-gradient-to-br from-gray-800 to-slate-900">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     );
@@ -84,7 +100,8 @@ export default function WeatherDashboard() {
     <div className={`w-full max-w-7xl mx-auto p-4 md:p-6 rounded-2xl shadow-2xl bg-gradient-to-br ${backgroundClass} transition-all duration-1000 ${animationClass}`}>
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <div className={cn(
-          "lg:col-span-3 h-[400px] lg:h-auto bg-black/10 backdrop-blur-md border border-white/10 rounded-xl shadow-lg"
+          "lg:col-span-3 h-[400px] lg:h-auto bg-black/20 backdrop-blur-md shadow-lg",
+          currentWeather.condition !== 'Rainy' && 'border border-white/10 rounded-xl'
         )}>
           <WeatherVisualization 
             weatherCondition={currentWeather.condition} 
@@ -99,7 +116,7 @@ export default function WeatherDashboard() {
           )}
         </div>
         <div className="lg:col-span-2 flex flex-col gap-6">
-          <LocationSelector onLocationSearch={handleLocationSearch} isLoading={isSearching} />
+          <LocationSelector onLocationSearch={(location) => handleLocationSearch({ location })} isLoading={isSearching} />
           <CurrentWeather data={currentWeather} />
           <HourlyForecast data={currentWeather} />
           <WeatherForecast data={currentWeather} />
