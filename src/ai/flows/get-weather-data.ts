@@ -42,10 +42,10 @@ export async function getWeatherData(input: GetWeatherDataInput): Promise<GetWea
 
 const prompt = ai.definePrompt({
     name: 'getWeatherDataPrompt',
-    input: { schema: GetWeatherDataInputSchema },
+    input: { schema: GetWeatherDataInputSchema.extend({ currentDate: z.string() }) },
     output: { schema: GetWeatherDataOutputSchema },
     prompt: `You are a weather API. Given a location, provide the current weather, a 5-hour forecast, and a 7-day forecast.
-The current day is Tuesday. The hourly forecast should start from 3pm. The 7-day forecast should start from today (Tuesday).
+The current date is {{{currentDate}}}. Use this to generate a realistic forecast starting from today.
 Location: {{{location}}}`,
 });
 
@@ -56,7 +56,8 @@ const getWeatherDataFlow = ai.defineFlow(
     outputSchema: GetWeatherDataOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt(input);
+    const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const { output } = await prompt({ ...input, currentDate });
     return output!;
   }
 );
