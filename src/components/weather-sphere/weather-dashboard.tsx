@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateWeatherAsset } from '@/ai/flows/generate-weather-asset';
+import { getWeatherData } from '@/ai/flows/get-weather-data';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import HourlyForecast from './hourly-forecast';
 
@@ -24,6 +25,7 @@ export default function WeatherDashboard() {
   const [currentWeather, setCurrentWeather] = useState<WeatherData>(locations[0]);
   const [isMounted, setIsMounted] = useState(false);
   const [isEnhancing, startEnhancing] = useTransition();
+  const [isSearching, startSearching] = useTransition();
   const [enhancedTexture, setEnhancedTexture] = useState<string | null>(null);
   const [aiDescription, setAiDescription] = useState<string | null>(null);
   const [animationClass, setAnimationClass] = useState('opacity-0');
@@ -33,31 +35,33 @@ export default function WeatherDashboard() {
   useEffect(() => {
     setIsMounted(true);
     setAnimationClass('opacity-100');
-    navigator.geolocation.getCurrentPosition(
-      () => {
-        toast({
-          title: "Location Detected",
-          description: "Displaying weather for your approximate area.",
-        });
-      },
-      () => {
+  }, []);
+  
+  const handleLocationSearch = (location: string) => {
+    startSearching(async () => {
+      setAnimationClass('opacity-0');
+      try {
+        const newWeather = await getWeatherData({ location });
+        setTimeout(() => {
+            setCurrentWeather(newWeather);
+            setEnhancedTexture(null);
+            setAiDescription(null);
+            setAnimationClass('opacity-100');
+             toast({
+              title: `Weather updated for ${newWeather.location}`,
+              description: `Currently ${newWeather.condition}, ${newWeather.temperature}°C.`,
+            });
+        }, 500)
+      } catch (error) {
+        console.error("Failed to fetch weather data:", error);
         toast({
           variant: "destructive",
-          title: "Location Access Denied",
-          description: "Showing default location. Allow location access for local weather.",
+          title: "Search Failed",
+          description: "Could not fetch weather data for that location.",
         });
-      }
-    );
-  }, [toast]);
-  
-  const handleLocationChange = (location: WeatherData) => {
-    setAnimationClass('opacity-0');
-    setTimeout(() => {
-        setCurrentWeather(location);
-        setEnhancedTexture(null);
-        setAiDescription(null);
         setAnimationClass('opacity-100');
-    }, 500)
+      }
+    });
   };
 
   const handleEnhanceScene = () => {
@@ -68,20 +72,21 @@ export default function WeatherDashboard() {
           weatherCondition: currentWeather.condition,
           assetDescription: `A 3D scene representing ${currentWeather.condition} weather in ${currentWeather.location}.`,
         });
-
+        
+        // This is a placeholder since the model can't generate actual 3D assets/textures
         const canvas = document.createElement('canvas');
         canvas.width = 256;
         canvas.height = 256;
         const ctx = canvas.getContext('2d');
         if (ctx) {
             const gradient = ctx.createLinearGradient(0, 0, 0, 256);
-            gradient.addColorStop(0, '#87CEEB');
-            gradient.addColorStop(1, '#F0F8FF');
+            gradient.addColorStop(0, '#87CEEB'); // Sky blue
+            gradient.addColorStop(1, '#F0F8FF'); // Alice blue
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, 256, 256);
         }
         const placeholderDataUri = canvas.toDataURL();
-
+        
         setEnhancedTexture(placeholderDataUri);
         setAiDescription(result.description || "Scene enhanced with AI-generated textures.");
         toast({
@@ -124,9 +129,14 @@ export default function WeatherDashboard() {
                   Enhance Scene
               </Button>
           </div>
+          {isSearching && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
+              <Loader2 className="h-12 w-12 animate-spin text-white" />
+            </div>
+          )}
         </div>
         <div className="lg:col-span-2 flex flex-col gap-6">
-          <LocationSelector onLocationChange={handleLocationChange} currentLocation={currentWeather} />
+          <LocationSelector onLocationSearch={handleLocationSearch} isLoading={isSearching} />
           {aiDescription && (
             <Alert>
               <Zap className="h-4 w-4" />

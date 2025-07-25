@@ -1,39 +1,44 @@
 "use client";
 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { locations, type WeatherData } from "@/lib/weather-data";
+import { useState } from 'react';
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Search } from 'lucide-react';
 
 interface LocationSelectorProps {
-  onLocationChange: (location: WeatherData) => void;
-  currentLocation: WeatherData;
+  onLocationSearch: (location: string) => void;
+  isLoading: boolean;
 }
 
-export default function LocationSelector({ onLocationChange, currentLocation }: LocationSelectorProps) {
-  const handleValueChange = (value: string) => {
-    const selectedLocation = locations.find((loc) => loc.location === value);
-    if (selectedLocation) {
-      onLocationChange(selectedLocation);
+export default function LocationSelector({ onLocationSearch, isLoading }: LocationSelectorProps) {
+  const [location, setLocation] = useState('New York');
+
+  const handleSearch = () => {
+    if (location && !isLoading) {
+      onLocationSearch(location);
+    }
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      handleSearch();
     }
   };
 
   return (
-    <Select onValueChange={handleValueChange} defaultValue={currentLocation.location}>
-      <SelectTrigger className="w-full text-lg bg-card/30 backdrop-blur-sm border-white/20 shadow-lg h-12">
-        <SelectValue placeholder="Select a location" />
-      </SelectTrigger>
-      <SelectContent>
-        {locations.map((loc) => (
-          <SelectItem key={loc.location} value={loc.location} className="text-lg">
-            {loc.location}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className="flex w-full items-center space-x-2">
+      <Input
+        type="text"
+        placeholder="Enter a city name..."
+        value={location}
+        onChange={(e) => setLocation(e.target.value)}
+        onKeyDown={handleKeyDown}
+        className="text-lg bg-card/30 backdrop-blur-sm border-white/20 shadow-lg h-12"
+        disabled={isLoading}
+      />
+      <Button type="submit" onClick={handleSearch} disabled={isLoading} className="h-12">
+        <Search className="h-5 w-5" />
+      </Button>
+    </div>
   );
 }
