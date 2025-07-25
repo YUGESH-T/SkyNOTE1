@@ -11,6 +11,7 @@ import { Loader2, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateWeatherAsset } from '@/ai/flows/generate-weather-asset';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import HourlyForecast from './hourly-forecast';
 
 const weatherColorClasses = {
   Sunny: "from-sky-400 to-blue-600",
@@ -94,7 +95,7 @@ export default function WeatherDashboard() {
 
   if (!isMounted) {
     return (
-      <div className="w-full max-w-7xl h-[680px] flex items-center justify-center">
+      <div className="w-full max-w-7xl h-screen flex items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     );
@@ -105,7 +106,7 @@ export default function WeatherDashboard() {
   return (
     <div className={`w-full max-w-7xl mx-auto p-4 md:p-6 rounded-2xl shadow-2xl bg-gradient-to-br ${backgroundClass} transition-colors duration-1000`}>
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <div className="lg:col-span-3 h-[400px] lg:h-[600px] relative">
+        <div className="lg:col-span-3 h-[400px] lg:h-[calc(100vh-100px)] relative">
           <WeatherVisualization weatherCondition={currentWeather.condition} enhancedTexture={enhancedTexture} />
           <div className="absolute top-4 left-4">
               <Button onClick={handleEnhanceScene} disabled={isEnhancing}>
@@ -128,6 +129,7 @@ export default function WeatherDashboard() {
             </Alert>
           )}
           <CurrentWeather data={currentWeather} />
+          <HourlyForecast data={currentWeather} />
           <WeatherForecast data={currentWeather} />
         </div>
       </div>

@@ -10,17 +10,23 @@ export default function WeatherForecast({ data }: WeatherForecastProps) {
   return (
     <Card className="bg-card/30 backdrop-blur-sm border-white/20 shadow-lg">
       <CardHeader>
-        <CardTitle>4-Day Forecast</CardTitle>
+        <CardTitle>7-Day Forecast</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="space-y-4">
           {data.forecast.map((item) => (
-            <div key={item.day} className="flex flex-col items-center space-y-2 p-3 rounded-lg bg-background/30 transition-all hover:bg-background/50 hover:scale-105">
-              <p className="font-medium text-muted-foreground">{item.day}</p>
-              <WeatherIcon condition={item.condition} className="w-10 h-10 text-primary drop-shadow-lg" />
-              <div className="flex gap-2 font-semibold">
-                <span>{item.tempHigh}°</span>
-                <span className="text-muted-foreground">{item.tempLow}°</span>
+            <div key={item.day} className="flex items-center justify-between p-2 rounded-lg transition-all hover:bg-background/30">
+              <p className="font-medium w-12">{item.day}</p>
+              <WeatherIcon condition={item.condition} className="w-8 h-8 text-primary drop-shadow-lg" />
+              <div className="flex items-center gap-2">
+                <span className="font-semibold">{item.tempLow}°</span>
+                <div className="w-24 h-2 bg-background/30 rounded-full overflow-hidden">
+                   <div 
+                    className="h-full bg-gradient-to-r from-blue-400 to-orange-400"
+                    style={{ width: `${((item.tempHigh - item.tempLow) / 15) * 100}%`, marginLeft: `${(item.tempLow / 40) * 100}%` }}
+                   />
+                </div>
+                <span className="font-semibold">{item.tempHigh}°</span>
               </div>
             </div>
           ))}
