@@ -22,7 +22,10 @@ const weatherColorClasses = {
 
 function getIsNight(currentTime: string, sunrise: string, sunset: string): boolean {
   if (!currentTime || !sunrise || !sunset) return false;
-  return currentTime < sunrise || currentTime > sunset;
+  const now = parseInt(currentTime.replace(':', ''), 10);
+  const rise = parseInt(sunrise.replace(':', ''), 10);
+  const set = parseInt(sunset.replace(':', ''), 10);
+  return now < rise || now > set;
 }
 
 export default function WeatherDashboard() {
@@ -87,7 +90,7 @@ export default function WeatherDashboard() {
             currentTime={currentWeather.currentTime}
           />
           {isSearching && (
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg z-10">
               <Loader2 className="h-12 w-12 animate-spin text-white" />
             </div>
           )}
