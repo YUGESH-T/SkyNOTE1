@@ -7,6 +7,7 @@ export interface WeatherData {
   location: string;
   condition: WeatherCondition;
   temperature: number;
+  feelsLike: number;
   humidity: number;
   windSpeed: number;
   forecast: Forecast[];
@@ -38,6 +39,7 @@ export const locations: WeatherData[] = [
     location: 'New York',
     condition: 'Sunny',
     temperature: 28,
+    feelsLike: 30,
     humidity: 55,
     windSpeed: 10,
     hourly: [
@@ -61,6 +63,7 @@ export const locations: WeatherData[] = [
     location: 'London',
     condition: 'Rainy',
     temperature: 17,
+    feelsLike: 15,
     humidity: 80,
     windSpeed: 20,
     hourly: [
@@ -84,6 +87,7 @@ export const locations: WeatherData[] = [
     location: 'Tokyo',
     condition: 'Cloudy',
     temperature: 22,
+    feelsLike: 22,
     humidity: 70,
     windSpeed: 15,
     hourly: [
@@ -107,6 +111,7 @@ export const locations: WeatherData[] = [
     location: 'Moscow',
     condition: 'Snowy',
     temperature: -5,
+    feelsLike: -10,
     humidity: 85,
     windSpeed: 18,
     hourly: [

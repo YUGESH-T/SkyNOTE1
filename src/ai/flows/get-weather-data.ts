@@ -20,6 +20,7 @@ const GetWeatherDataOutputSchema = z.object({
     location: z.string(),
     condition: z.enum(['Sunny', 'Cloudy', 'Rainy', 'Snowy']),
     temperature: z.number().describe("Temperature in Celsius."),
+    feelsLike: z.number().describe("The 'feels like' temperature in Celsius, considering factors like humidity and wind."),
     humidity: z.number().describe("Humidity percentage."),
     windSpeed: z.number().describe("Wind speed in km/h."),
     forecast: z.array(z.object({
@@ -44,7 +45,7 @@ const prompt = ai.definePrompt({
     name: 'getWeatherDataPrompt',
     input: { schema: GetWeatherDataInputSchema.extend({ currentDate: z.string() }) },
     output: { schema: GetWeatherDataOutputSchema },
-    prompt: `You are a weather API. Given a location, provide the current weather, a 5-hour forecast, and a 7-day forecast.
+    prompt: `You are a weather API. Given a location, provide the current weather, a 'feels like' temperature, a 5-hour forecast, and a 7-day forecast.
 The current date is {{{currentDate}}}. Use this to generate a realistic forecast starting from today.
 Location: {{{location}}}`,
 });

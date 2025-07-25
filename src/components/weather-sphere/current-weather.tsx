@@ -38,7 +38,7 @@ export default function CurrentWeather({ data }: CurrentWeatherProps) {
           </div>
            <div className="flex flex-col items-center gap-1">
             <Thermometer className="w-6 h-6 text-muted-foreground" />
-            <p className="font-bold">{data.temperature}°C</p>
+            <p className="font-bold">{data.feelsLike}°C</p>
             <p className="text-sm text-muted-foreground">Feels Like</p>
           </div>
         </div>
