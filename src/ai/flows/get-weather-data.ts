@@ -28,11 +28,13 @@ const GetWeatherDataOutputSchema = z.object({
         condition: z.enum(['Sunny', 'Cloudy', 'Rainy', 'Snowy']),
         tempHigh: z.number().describe("Highest temperature for the day in Celsius."),
         tempLow: z.number().describe("Lowest temperature for the day in Celsius."),
-    })).length(10).describe("A 10-day weather forecast."),
+        humidity: z.number().describe("Average humidity percentage for the day."),
+    })).length(7).describe("A 7-day weather forecast."),
     hourly: z.array(z.object({
         time: z.string().describe("The hour for the forecast (e.g., '3pm')."),
         condition: z.enum(['Sunny', 'Cloudy', 'Rainy', 'Snowy']),
         temperature: z.number().describe("Temperature for the hour in Celsius."),
+        windSpeed: z.number().describe("Wind speed in km/h for the hour."),
     })).length(8).describe("An 8-hour weather forecast."),
 });
 export type GetWeatherDataOutput = z.infer<typeof GetWeatherDataOutputSchema>;
@@ -73,7 +75,7 @@ const getWeatherDataFlow = ai.defineFlow(
     
     const [currentData, forecastData, hourlyData] = await Promise.all([
         fetchFromWeatherbit('current', { city: location }),
-        fetchFromWeatherbit('forecast/daily', { city: location, days: '10' }),
+        fetchFromWeatherbit('forecast/daily', { city: location, days: '7' }),
         fetchFromWeatherbit('forecast/hourly', { city: location, hours: '8' })
     ]);
 
@@ -93,11 +95,13 @@ const getWeatherDataFlow = ai.defineFlow(
             condition: mapWeatherCondition(day.weather.code),
             tempHigh: Math.round(day.high_temp),
             tempLow: Math.round(day.low_temp),
+            humidity: Math.round(day.rh),
         })),
         hourly: hourly.map((hour: any) => ({
             time: new Date(hour.timestamp_local).toLocaleTimeString('en-US', { hour: 'numeric', hour12: true }).toLowerCase(),
             condition: mapWeatherCondition(hour.weather.code),
             temperature: Math.round(hour.temp),
+            windSpeed: Math.round(hour.wind_spd * 3.6),
         })).slice(0, 8),
     };
     
