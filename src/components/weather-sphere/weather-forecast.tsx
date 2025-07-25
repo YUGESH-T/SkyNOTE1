@@ -10,7 +10,7 @@ export default function WeatherForecast({ data }: WeatherForecastProps) {
   return (
     <Card className="bg-card/30 backdrop-blur-sm border-white/20 shadow-lg transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-1">
       <CardHeader>
-        <CardTitle>7-Day Forecast</CardTitle>
+        <CardTitle>10-Day Forecast</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">

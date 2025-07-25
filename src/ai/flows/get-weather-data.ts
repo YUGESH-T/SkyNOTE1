@@ -28,12 +28,12 @@ const GetWeatherDataOutputSchema = z.object({
         condition: z.enum(['Sunny', 'Cloudy', 'Rainy', 'Snowy']),
         tempHigh: z.number().describe("Highest temperature for the day in Celsius."),
         tempLow: z.number().describe("Lowest temperature for the day in Celsius."),
-    })).length(7).describe("A 7-day weather forecast."),
+    })).length(10).describe("A 10-day weather forecast."),
     hourly: z.array(z.object({
         time: z.string().describe("The hour for the forecast (e.g., '3pm')."),
         condition: z.enum(['Sunny', 'Cloudy', 'Rainy', 'Snowy']),
         temperature: z.number().describe("Temperature for the hour in Celsius."),
-    })).length(5).describe("A 5-hour weather forecast."),
+    })).length(8).describe("An 8-hour weather forecast."),
 });
 export type GetWeatherDataOutput = z.infer<typeof GetWeatherDataOutputSchema>;
 
@@ -73,8 +73,8 @@ const getWeatherDataFlow = ai.defineFlow(
     
     const [currentData, forecastData, hourlyData] = await Promise.all([
         fetchFromWeatherbit('current', { city: location }),
-        fetchFromWeatherbit('forecast/daily', { city: location, days: '7' }),
-        fetchFromWeatherbit('forecast/hourly', { city: location, hours: '5' })
+        fetchFromWeatherbit('forecast/daily', { city: location, days: '10' }),
+        fetchFromWeatherbit('forecast/hourly', { city: location, hours: '8' })
     ]);
 
     const current = currentData.data[0];
@@ -98,7 +98,7 @@ const getWeatherDataFlow = ai.defineFlow(
             time: new Date(hour.timestamp_local).toLocaleTimeString('en-US', { hour: 'numeric', hour12: true }).toLowerCase(),
             condition: mapWeatherCondition(hour.weather.code),
             temperature: Math.round(hour.temp),
-        })).slice(0, 5),
+        })).slice(0, 8),
     };
     
     return transformedData;
