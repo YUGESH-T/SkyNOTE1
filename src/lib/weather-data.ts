@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
-import { Sun, Cloud, CloudRain, Snowflake } from 'lucide-react';
+import { Sun, Cloud, CloudRain, Snowflake, Zap } from 'lucide-react';
 
-export type WeatherCondition = 'Sunny' | 'Cloudy' | 'Rainy' | 'Snowy';
+export type WeatherCondition = 'Sunny' | 'Cloudy' | 'Rainy' | 'Snowy' | 'Thunderstorm';
 
 export interface WeatherData {
   location: string;
@@ -37,6 +37,7 @@ export const weatherIcons: Record<WeatherCondition, LucideIcon> = {
   Cloudy: Cloud,
   Rainy: CloudRain,
   Snowy: Snowflake,
+  Thunderstorm: Zap,
 };
 
 export const locations: WeatherData[] = [

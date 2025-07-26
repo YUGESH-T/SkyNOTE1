@@ -47,6 +47,8 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
     controls: null as OrbitControls | null,
     weatherGroup: null as THREE.Group | null,
     particles: null as THREE.Points | null,
+    lightning: null as THREE.PointLight | null,
+    lightningTimeout: null as NodeJS.Timeout | null,
     clock: new THREE.Clock(),
   }).current;
 
@@ -101,7 +103,7 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
              const sun = stateRef.weatherGroup.children[0] as THREE.Mesh;
              sun.scale.setScalar(Math.sin(elapsedTime * 2) * 0.02 + 1);
          }
-         if (weatherCondition === 'Cloudy') {
+         if (weatherCondition === 'Cloudy' || weatherCondition === 'Thunderstorm') {
             stateRef.weatherGroup.children.forEach((cloud, i) => {
                 cloud.rotation.y += delta * 0.05 * (i % 2 === 0 ? 1 : -1);
                 cloud.children.forEach((part, j) => {
@@ -130,6 +132,7 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
       if (currentMount && stateRef.renderer?.domElement) {
         currentMount.removeChild(stateRef.renderer.domElement);
       }
+      if (stateRef.lightningTimeout) clearTimeout(stateRef.lightningTimeout);
       stateRef.controls?.dispose();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -139,12 +142,18 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
   useEffect(() => {
     const scene = stateRef.scene;
     if (!scene) return;
+    
+    // Clear previous timeout if any
+    if (stateRef.lightningTimeout) clearTimeout(stateRef.lightningTimeout);
 
     // Clear previous objects
     if (stateRef.weatherGroup) scene.remove(stateRef.weatherGroup);
     if (stateRef.particles) scene.remove(stateRef.particles);
+    if (stateRef.lightning) scene.remove(stateRef.lightning);
     stateRef.weatherGroup = new THREE.Group();
     stateRef.particles = null;
+    stateRef.lightning = null;
+
 
     const daylight = getDaylightFactor(currentTime, sunrise, sunset);
     const isNightBasedOnTime = currentTime ? parseInt(currentTime.split(':')[0], 10) >= 19 : false;
@@ -275,6 +284,54 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
                stateRef.weatherGroup.add(cloudSphere);
             }
         }
+        break;
+      }
+      case 'Thunderstorm': {
+        const cloudMaterial = new THREE.MeshStandardMaterial({
+          color: 0x1a1a2a, // Dark stormy color
+          opacity: 0.9,
+          transparent: true,
+          roughness: 0.9,
+          flatShading: true,
+          emissive: 0x111122,
+        });
+
+        for (let i = 0; i < 8; i++) {
+          const cloudGroup = new THREE.Group();
+          for (let j = 0; j < 8; j++) {
+            const partGeom = new THREE.IcosahedronGeometry(Math.random() * 1 + 0.8, 1);
+            const part = new THREE.Mesh(partGeom, cloudMaterial);
+            part.position.set(
+              (Math.random() - 0.5) * 3,
+              (Math.random() - 0.5) * 1.5,
+              (Math.random() - 0.5) * 1.5
+            );
+            part.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+            cloudGroup.add(part);
+          }
+          cloudGroup.position.set(
+            (Math.random() - 0.5) * 10,
+            Math.random() * 2 - 0.5,
+            (Math.random() - 0.5) * 5 - 2
+          );
+          stateRef.weatherGroup.add(cloudGroup);
+        }
+
+        stateRef.lightning = new THREE.PointLight(0xccccff, 0, 0, 2);
+        stateRef.lightning.position.set(0,0,5);
+        scene.add(stateRef.lightning);
+
+        const flash = () => {
+            if (stateRef.lightning && weatherCondition === 'Thunderstorm') {
+              stateRef.lightning.position.set((Math.random()-0.5) * 20, (Math.random()-0.5) * 10, (Math.random()-0.5)*10);
+              stateRef.lightning.power = 50 + Math.random() * 50;
+              setTimeout(() => {
+                if (stateRef.lightning) stateRef.lightning.power = 0;
+              }, 50 + Math.random() * 50);
+            }
+            stateRef.lightningTimeout = setTimeout(flash, 2000 + Math.random() * 4000);
+        }
+        flash();
         break;
       }
     }

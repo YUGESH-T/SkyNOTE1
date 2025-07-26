@@ -22,7 +22,7 @@ export type GetWeatherDataInput = z.infer<typeof GetWeatherDataInputSchema>;
 
 const GetWeatherDataOutputSchema = z.object({
     location: z.string(),
-    condition: z.enum(['Sunny', 'Cloudy', 'Rainy', 'Snowy']),
+    condition: z.enum(['Sunny', 'Cloudy', 'Rainy', 'Snowy', 'Thunderstorm']),
     temperature: z.number().describe("Temperature in Celsius."),
     feelsLike: z.number().describe("The 'feels like' temperature in Celsius, considering factors like humidity and wind."),
     humidity: z.number().describe("Humidity percentage."),
@@ -32,25 +32,26 @@ const GetWeatherDataOutputSchema = z.object({
     currentTime: z.string().describe("Current local time (e.g., '14:30')."),
     forecast: z.array(z.object({
         day: z.string().describe("Day of the week (e.g., 'Tue')."),
-        condition: z.enum(['Sunny', 'Cloudy', 'Rainy', 'Snowy']),
+        condition: z.enum(['Sunny', 'Cloudy', 'Rainy', 'Snowy', 'Thunderstorm']),
         tempHigh: z.number().describe("Highest temperature for the day in Celsius."),
         tempLow: z.number().describe("Lowest temperature for the day in Celsius."),
         humidity: z.number().describe("Average humidity percentage for the day."),
     })).length(7).describe("A 7-day weather forecast."),
     hourly: z.array(z.object({
         time: z.string().describe("The hour for the forecast (e.g., '3pm')."),
-        condition: z.enum(['Sunny', 'Cloudy', 'Rainy', 'Snowy']),
+        condition: z.enum(['Sunny', 'Cloudy', 'Rainy', 'Snowy', 'Thunderstorm']),
         temperature: z.number().describe("Temperature for the hour in Celsius."),
         windSpeed: z.number().describe("Wind speed in km/h for the hour."),
     })).min(1).describe("A 24-hour weather forecast."),
 });
 export type GetWeatherDataOutput = z.infer<typeof GetWeatherDataOutputSchema>;
 
-function mapWeatherCondition(weatherbitCode: number): 'Sunny' | 'Cloudy' | 'Rainy' | 'Snowy' {
+function mapWeatherCondition(weatherbitCode: number): 'Sunny' | 'Cloudy' | 'Rainy' | 'Snowy' | 'Thunderstorm' {
+    if (weatherbitCode >= 200 && weatherbitCode <= 233) return 'Thunderstorm';
     if (weatherbitCode >= 801 && weatherbitCode <= 804) return 'Cloudy';
     if (weatherbitCode === 800) return 'Sunny';
     if (weatherbitCode >= 600 && weatherbitCode <= 623) return 'Snowy';
-    if (weatherbitCode >= 200 && weatherbitCode <= 522) return 'Rainy';
+    if (weatherbitCode >= 300 && weatherbitCode <= 522) return 'Rainy';
     return 'Sunny'; // Default
 }
 

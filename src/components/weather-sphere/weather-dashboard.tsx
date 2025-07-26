@@ -19,6 +19,7 @@ const weatherColorClasses = {
   Cloudy: "from-slate-400 to-gray-600",
   Rainy: "from-indigo-500 to-slate-800",
   Snowy: "from-blue-200 to-cyan-400",
+  Thunderstorm: "from-gray-700 via-gray-900 to-black",
   Night: "from-gray-800 to-slate-900"
 };
 
