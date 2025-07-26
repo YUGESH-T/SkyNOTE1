@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { locations } from '@/lib/weather-data';
+import { getLocationSuggestions } from '@/ai/flows/get-location-suggestions';
 
 interface LocationSelectorProps {
   onLocationSearch: (location: string) => void;
@@ -18,7 +18,6 @@ export default function LocationSelector({ onLocationSearch, isLoading, initialL
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const suggestionBoxRef = useRef<HTMLDivElement>(null);
-  const knownCities = locations.map(l => l.location);
 
   useEffect(() => {
     setLocation(initialLocation);
@@ -33,36 +32,40 @@ export default function LocationSelector({ onLocationSearch, isLoading, initialL
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
-      handleSearch();
+        if (event.ctrlKey) {
+            handleSearch();
+        }
     }
   };
-  
-  const getLocalSuggestions = useCallback((input: string) => {
+
+  const fetchSuggestions = useCallback(async (input: string) => {
     if (input.length < 2) {
       setSuggestions([]);
       return;
     }
-    const lowercasedInput = input.toLowerCase();
-    const filteredSuggestions = knownCities.filter(city => 
-      city.toLowerCase().includes(lowercasedInput)
-    ).slice(0, 5); // Limit to 5 suggestions
-    setSuggestions(filteredSuggestions);
-  }, [knownCities]);
-
+    try {
+      const result = await getLocationSuggestions({ input });
+      setSuggestions(result.suggestions || []);
+    } catch (error) {
+      console.error('Failed to fetch suggestions:', error);
+      setSuggestions([]);
+    }
+  }, []);
 
   useEffect(() => {
     const handler = setTimeout(() => {
       if (location && showSuggestions) {
-        getLocalSuggestions(location);
+        fetchSuggestions(location);
       } else {
         setSuggestions([]);
       }
-    }, 100); // Short debounce for local search
+    }, 500); // 500ms debounce
 
     return () => {
       clearTimeout(handler);
     };
-  }, [location, getLocalSuggestions, showSuggestions]);
+  }, [location, fetchSuggestions, showSuggestions]);
+
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -92,6 +95,7 @@ export default function LocationSelector({ onLocationSearch, isLoading, initialL
               onChange={(e) => setLocation(e.target.value)}
               onKeyDown={handleKeyDown}
               onFocus={() => setShowSuggestions(true)}
+              placeholder="Enter a city..."
               className="text-lg bg-card/30 backdrop-blur-sm border-white/20 shadow-lg h-12"
               disabled={isLoading}
             />
