@@ -7,15 +7,12 @@ import WeatherVisualization from './weather-visualization';
 import CurrentWeather from './current-weather';
 import WeatherForecast from './weather-forecast';
 import LocationSelector from './location-selector';
-import { Loader2, Compass, Sparkles } from 'lucide-react';
+import { Loader2, Compass } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getWeatherData } from '@/ai/flows/get-weather-data';
 import HourlyForecast from './hourly-forecast';
 import { cn } from '@/lib/utils';
 import type {GetWeatherDataInput} from '@/ai/flows/get-weather-data'
-import { Button } from '../ui/button';
-import { generateWeatherAsset } from '@/ai/flows/generate-weather-asset';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 const weatherColorClasses = {
   Sunny: "from-sky-400 to-blue-600",
@@ -38,8 +35,6 @@ export default function WeatherDashboard() {
   const [currentWeather, setCurrentWeather] = useState<WeatherData | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [isSearching, startSearching] = useTransition();
-  const [isGenerating, startGenerating] = useTransition();
-  const [generatedDesc, setGeneratedDesc] = useState<string | null>(null);
   const [contentClass, setContentClass] = useState('opacity-0 scale-95');
   const [geolocationStatus, setGeolocationStatus] = useState<'pending' | 'success' | 'error'>('pending');
 
@@ -50,17 +45,18 @@ export default function WeatherDashboard() {
       if (!params.location && !(typeof params.lat === 'number' && typeof params.lon === 'number')) return;
       
       setContentClass('opacity-0 scale-95');
-      setGeneratedDesc(null);
 
       try {
         const newWeather = await getWeatherData(params);
         setTimeout(() => {
             setCurrentWeather(newWeather);
             setContentClass('opacity-100 scale-100');
-            toast({
-              title: `Updated for ${newWeather.location}`,
-              description: `Currently ${newWeather.condition}, ${newWeather.temperature}°C.`,
-            });
+            if (params.lat && params.lon) {
+                toast({
+                    title: `Weather updated for your location`,
+                    description: `Currently ${newWeather.condition}, ${newWeather.temperature}°C.`,
+                });
+            }
         }, 300)
       } catch (error: any) {
         console.error("Failed to fetch weather data:", error);
@@ -76,49 +72,32 @@ export default function WeatherDashboard() {
     });
   }, [toast, currentWeather]);
 
-  const handleGenerateAsset = useCallback(() => {
-    if (!currentWeather) return;
-
-    startGenerating(async () => {
-      setGeneratedDesc(null);
-      try {
-        const result = await generateWeatherAsset({
-          weatherCondition: currentWeather.condition,
-          assetDescription: `A 3D visualization of a ${currentWeather.condition.toLowerCase()} day in ${currentWeather.location}. The time is ${currentWeather.currentTime}.`
-        });
-        setGeneratedDesc(result.description);
-         toast({
-          title: "AI Enhancement Complete",
-          description: "A new description of the scene has been generated.",
-        });
-      } catch (error: any) {
-         console.error("Failed to generate asset:", error);
-         toast({
-          variant: "destructive",
-          title: "AI Enhancement Failed",
-          description: "Could not generate a new scene description.",
-        });
-      }
-    });
-
-  }, [currentWeather, toast]);
-
 
   useEffect(() => {
     setIsMounted(true);
     
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        handleLocationSearch({ lat: latitude, lon: longitude });
-        setGeolocationStatus('success');
-      },
-      (error) => {
-        console.warn(`Geolocation error: ${error.message}`);
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          handleLocationSearch({ lat: latitude, lon: longitude });
+          setGeolocationStatus('success');
+        },
+        (error) => {
+          console.warn(`Geolocation error: ${error.message}`);
+          handleLocationSearch({ location: 'New York' });
+          setGeolocationStatus('error');
+          toast({
+              title: "Geolocation unavailable",
+              description: "Showing weather for New York. You can search for another city.",
+          });
+        },
+        { timeout: 5000 }
+      );
+    } else {
+        handleLocationSearch({ location: 'New York' });
         setGeolocationStatus('error');
-      },
-      { timeout: 5000 }
-    );
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -155,22 +134,7 @@ export default function WeatherDashboard() {
                 <Loader2 className="h-12 w-12 animate-spin text-white" />
               </div>
             )}
-            {currentWeather && (
-               <div className="absolute bottom-4 left-4 z-10">
-                 <Button onClick={handleGenerateAsset} disabled={isGenerating}>
-                   {isGenerating ? <Loader2 className="animate-spin" /> : <Sparkles />}
-                   Generate with AI
-                 </Button>
-               </div>
-            )}
           </div>
-          {generatedDesc && (
-            <Alert className="bg-card/30 backdrop-blur-sm border-white/20 shadow-lg animate-in fade-in-0 slide-in-from-bottom-5">
-              <Sparkles className="h-4 w-4" />
-              <AlertTitle>AI Generated Scene</AlertTitle>
-              <AlertDescription>{isGenerating ? "Generating..." : generatedDesc}</AlertDescription>
-            </Alert>
-          )}
         </div>
 
         <div className={cn("lg:col-span-2 flex flex-col gap-6 transition-all duration-500 ease-in-out", contentClass)}>
