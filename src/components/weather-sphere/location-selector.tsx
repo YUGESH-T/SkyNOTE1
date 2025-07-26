@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -5,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { getLocationSuggestions } from '@/ai/flows/get-location-suggestions';
+import { locations } from '@/lib/weather-data';
 
 interface LocationSelectorProps {
   onLocationSearch: (location: string) => void;
@@ -32,39 +33,38 @@ export default function LocationSelector({ onLocationSearch, isLoading, initialL
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
-        if (event.ctrlKey) {
+        if (event.ctrlKey || !event.ctrlKey) { // Allow enter to search as well
             handleSearch();
         }
     }
   };
 
-  const fetchSuggestions = useCallback(async (input: string) => {
-    if (input.length < 2) {
+  const fetchLocalSuggestions = useCallback((input: string) => {
+    if (input.length < 1) {
       setSuggestions([]);
       return;
     }
-    try {
-      const result = await getLocationSuggestions({ input });
-      setSuggestions(result.suggestions || []);
-    } catch (error) {
-      console.error('Failed to fetch suggestions:', error);
-      setSuggestions([]);
-    }
+    const lowercasedInput = input.toLowerCase();
+    const filteredSuggestions = locations
+      .map(l => l.location)
+      .filter(l => l.toLowerCase().startsWith(lowercasedInput))
+      .slice(0, 5); // Limit to 5 suggestions
+    setSuggestions(filteredSuggestions);
   }, []);
 
   useEffect(() => {
     const handler = setTimeout(() => {
       if (location && showSuggestions) {
-        fetchSuggestions(location);
+        fetchLocalSuggestions(location);
       } else {
         setSuggestions([]);
       }
-    }, 500); // 500ms debounce
+    }, 150); // A short debounce for responsiveness
 
     return () => {
       clearTimeout(handler);
     };
-  }, [location, fetchSuggestions, showSuggestions]);
+  }, [location, fetchLocalSuggestions, showSuggestions]);
 
 
   useEffect(() => {
@@ -98,6 +98,7 @@ export default function LocationSelector({ onLocationSearch, isLoading, initialL
               placeholder="Enter a city..."
               className="text-lg bg-card/30 backdrop-blur-sm border-white/20 shadow-lg h-12"
               disabled={isLoading}
+              autoComplete="off"
             />
         </div>
         <Button type="submit" onClick={handleSearch} disabled={isLoading || !location} className="h-12">
