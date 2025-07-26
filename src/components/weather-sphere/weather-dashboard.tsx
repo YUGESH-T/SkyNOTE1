@@ -51,7 +51,7 @@ export default function WeatherDashboard() {
         setTimeout(() => {
             setCurrentWeather(newWeather);
             setContentClass('opacity-100 scale-100');
-            if (params.lat && params.lon) {
+            if (params.lat && params.lon && geolocationStatus !== 'success') {
                 toast({
                     title: `Weather updated for your location`,
                     description: `Currently ${newWeather.condition}, ${newWeather.temperature}°C.`,
@@ -67,10 +67,12 @@ export default function WeatherDashboard() {
         });
         if (currentWeather) {
             setContentClass('opacity-100 scale-100');
+        } else {
+            setGeolocationStatus('error'); // Ensure we show the welcome message on initial fail
         }
       }
     });
-  }, [toast, currentWeather]);
+  }, [toast, currentWeather, geolocationStatus]);
 
 
   useEffect(() => {
@@ -87,10 +89,12 @@ export default function WeatherDashboard() {
           console.warn(`Geolocation error: ${error.message}`);
           handleLocationSearch({ location: 'New York' });
           setGeolocationStatus('error');
-          toast({
-              title: "Geolocation unavailable",
-              description: "Showing weather for New York. You can search for another city.",
-          });
+          if (error.code !== error.PERMISSION_DENIED) {
+            toast({
+                title: "Geolocation unavailable",
+                description: "Showing weather for New York. You can search for another city.",
+            });
+          }
         },
         { timeout: 5000 }
       );
@@ -103,8 +107,8 @@ export default function WeatherDashboard() {
 
   if (!isMounted) {
     return (
-      <div className="w-full max-w-7xl h-screen flex items-center justify-center bg-gradient-to-br from-gray-800 to-slate-900">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      <div className="w-full h-screen flex items-center justify-center bg-gradient-to-br from-gray-800 to-slate-900">
+        <Loader2 className="h-12 w-12 md:h-16 md:w-16 animate-spin text-primary" />
       </div>
     );
   }
@@ -116,11 +120,11 @@ export default function WeatherDashboard() {
   const isLoading = isSearching || (geolocationStatus === 'pending' && !currentWeather);
 
   return (
-    <div className={`w-full max-w-7xl mx-auto p-4 md:p-6 rounded-2xl shadow-2xl bg-gradient-to-br ${backgroundClass} transition-all duration-1000`}>
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <div className="lg:col-span-3 flex flex-col gap-4">
+    <div className={`w-full max-w-7xl mx-auto p-2 sm:p-4 md:p-6 rounded-none sm:rounded-2xl shadow-2xl bg-gradient-to-br ${backgroundClass} transition-all duration-1000 min-h-screen sm:min-h-0`}>
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 md:gap-6">
+        <div className="lg:col-span-3 flex flex-col gap-4 md:gap-6">
           <div className={cn(
-            "relative flex-grow h-[400px] lg:h-auto bg-black/20 backdrop-blur-md shadow-lg",
+            "relative flex-grow h-[300px] sm:h-[400px] lg:h-auto bg-black/20 backdrop-blur-md shadow-lg",
             "border border-white/10 rounded-xl"
           )}>
             {currentWeather && <WeatherVisualization 
@@ -137,7 +141,7 @@ export default function WeatherDashboard() {
           </div>
         </div>
 
-        <div className={cn("lg:col-span-2 flex flex-col gap-6 transition-all duration-500 ease-in-out", contentClass)}>
+        <div className={cn("lg:col-span-2 flex flex-col gap-4 md:gap-6 transition-all duration-500 ease-in-out", contentClass)}>
           <LocationSelector onLocationSearch={(location) => handleLocationSearch({ location })} isLoading={isSearching} initialLocation={currentWeather?.location} />
           {currentWeather ? (
             <>
@@ -146,7 +150,7 @@ export default function WeatherDashboard() {
               <WeatherForecast data={currentWeather} />
             </>
           ): (
-            <div className="h-full flex flex-col items-center justify-center bg-card/30 backdrop-blur-sm border-white/20 shadow-lg rounded-lg p-8 mt-2 text-center">
+            <div className="h-full flex flex-col items-center justify-center bg-card/30 backdrop-blur-sm border-white/20 shadow-lg rounded-lg p-6 md:p-8 mt-2 text-center min-h-[50vh] lg:min-h-0">
                  {isLoading ? (
                      <>
                         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
@@ -154,9 +158,9 @@ export default function WeatherDashboard() {
                      </>
                  ) : showWelcomeMessage ? (
                     <>
-                        <Compass className="h-16 w-16 text-primary mb-4" />
-                        <h2 className="text-2xl font-bold mb-2">Welcome to SKYNOTE</h2>
-                        <p className="text-muted-foreground">Enter a city to get the latest weather forecast and see a beautiful 3D visualization.</p>
+                        <Compass className="h-12 w-12 md:h-16 md:w-16 text-primary mb-4" />
+                        <h2 className="text-xl md:text-2xl font-bold mb-2">Welcome to SKYNOTE</h2>
+                        <p className="text-muted-foreground text-sm md:text-base">Enter a city to get the latest weather forecast and see a beautiful 3D visualization.</p>
                     </>
                  ) : null}
             </div>
