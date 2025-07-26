@@ -19,6 +19,7 @@ export default function LocationSelector({ onLocationSearch, isLoading, initialL
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const suggestionBoxRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setLocation(initialLocation);
@@ -28,14 +29,13 @@ export default function LocationSelector({ onLocationSearch, isLoading, initialL
     if (location && !isLoading) {
       onLocationSearch(location);
       setShowSuggestions(false);
+      inputRef.current?.blur();
     }
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
-        if (event.ctrlKey || !event.ctrlKey) { // Allow enter to search as well
-            handleSearch();
-        }
+        handleSearch();
     }
   };
 
@@ -48,7 +48,7 @@ export default function LocationSelector({ onLocationSearch, isLoading, initialL
     const filteredSuggestions = locations
       .map(l => l.location)
       .filter(l => l.toLowerCase().startsWith(lowercasedInput))
-      .slice(0, 5); // Limit to 5 suggestions
+      .slice(0, 5);
     setSuggestions(filteredSuggestions);
   }, []);
 
@@ -59,7 +59,7 @@ export default function LocationSelector({ onLocationSearch, isLoading, initialL
       } else {
         setSuggestions([]);
       }
-    }, 150); // A short debounce for responsiveness
+    }, 100);
 
     return () => {
       clearTimeout(handler);
@@ -81,8 +81,9 @@ export default function LocationSelector({ onLocationSearch, isLoading, initialL
 
   const handleSuggestionClick = (suggestion: string) => {
     setLocation(suggestion);
-    onLocationSearch(suggestion);
     setShowSuggestions(false);
+    onLocationSearch(suggestion);
+    inputRef.current?.blur();
   };
 
   return (
@@ -90,6 +91,7 @@ export default function LocationSelector({ onLocationSearch, isLoading, initialL
       <div className="flex w-full items-center space-x-2">
         <div className="relative flex-grow">
             <Input
+              ref={inputRef}
               type="text"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
@@ -101,8 +103,9 @@ export default function LocationSelector({ onLocationSearch, isLoading, initialL
               autoComplete="off"
             />
         </div>
-        <Button type="submit" onClick={handleSearch} disabled={isLoading || !location} className="h-12">
+        <Button type="submit" onClick={handleSearch} disabled={isLoading || !location} className="h-12 shrink-0">
           {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
+          <span className="sr-only">Search</span>
         </Button>
       </div>
       {showSuggestions && suggestions.length > 0 && (
