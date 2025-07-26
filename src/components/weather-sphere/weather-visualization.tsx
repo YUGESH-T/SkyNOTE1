@@ -147,7 +147,7 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
     stateRef.particles = null;
 
     const daylight = getDaylightFactor(currentTime, sunrise, sunset);
-    const isNight = daylight < 0.2;
+    const isNightBasedOnTime = currentTime ? parseInt(currentTime.split(':')[0], 10) >= 19 : false;
 
     // Lighting
     scene.clear();
@@ -161,7 +161,7 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
 
     switch (weatherCondition) {
       case 'Sunny': {
-        if (isNight) {
+        if (isNightBasedOnTime) {
           // MOON
           const moonGeom = new THREE.SphereGeometry(2, 32, 32);
           const moonMat = new THREE.MeshStandardMaterial({
@@ -204,7 +204,7 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
       }
       case 'Cloudy': {
         const cloudMaterial = new THREE.MeshStandardMaterial({
-          color: isNight ? 0x48546c : 0xffffff,
+          color: isNightBasedOnTime ? 0x48546c : 0xffffff,
           opacity: 0.85,
           transparent: true,
           roughness: 0.8,
@@ -259,7 +259,7 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
         if (isSnow) {
             // Add some subtle clouds for atmosphere in snow
             const cloudMaterial = new THREE.MeshStandardMaterial({
-              color: isNight ? 0x3a4458 : 0xaaaaaa,
+              color: isNightBasedOnTime ? 0x3a4458 : 0xaaaaaa,
               opacity: 0.5,
               transparent: true,
               roughness: 0.9,
