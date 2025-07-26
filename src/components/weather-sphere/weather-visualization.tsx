@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useRef } from 'react';
@@ -160,17 +161,45 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
 
     switch (weatherCondition) {
       case 'Sunny': {
-        const sunGeom = new THREE.IcosahedronGeometry(2.5, 15);
-        const sunMat = new THREE.MeshStandardMaterial({
-          color: isNight ? 0xddeeff : 0xffcc33,
-          emissive: isNight ? 0x8899cc : 0xffaa00,
-          emissiveIntensity: isNight ? 0.3 : 0.6,
-          metalness: 0.1,
-          roughness: 0.2,
-          flatShading: true,
-        });
-        const sun = new THREE.Mesh(sunGeom, sunMat);
-        stateRef.weatherGroup.add(sun);
+        if (isNight) {
+          // MOON
+          const moonGeom = new THREE.SphereGeometry(2, 32, 32);
+          const moonMat = new THREE.MeshStandardMaterial({
+            color: 0xddeeff,
+            emissive: 0x8899cc,
+            emissiveIntensity: 0.1,
+            metalness: 0.1,
+            roughness: 0.9,
+          });
+          const moon = new THREE.Mesh(moonGeom, moonMat);
+
+          // Craters
+          const craterGeom = new THREE.SphereGeometry(1, 16, 16);
+          const craterMat = new THREE.MeshStandardMaterial({ color: 0x8899aa, roughness: 1 });
+          for (let i = 0; i < 15; i++) {
+            const crater = new THREE.Mesh(craterGeom, craterMat);
+            const size = Math.random() * 0.3 + 0.1;
+            crater.scale.set(size, size, size * 0.5);
+            const pos = new THREE.Vector3().setFromSphericalCoords(2, Math.acos(2 * Math.random() - 1), Math.random() * 2 * Math.PI);
+            crater.position.copy(pos);
+            crater.lookAt(new THREE.Vector3(0,0,0));
+            moon.add(crater);
+          }
+          stateRef.weatherGroup.add(moon);
+        } else {
+          // SUN
+          const sunGeom = new THREE.IcosahedronGeometry(2.5, 15);
+          const sunMat = new THREE.MeshStandardMaterial({
+            color: 0xffcc33,
+            emissive: 0xffaa00,
+            emissiveIntensity: 0.6,
+            metalness: 0.1,
+            roughness: 0.2,
+            flatShading: true,
+          });
+          const sun = new THREE.Mesh(sunGeom, sunMat);
+          stateRef.weatherGroup.add(sun);
+        }
         break;
       }
       case 'Cloudy': {
