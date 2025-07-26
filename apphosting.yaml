@@ -2,6 +2,14 @@
 # https://firebase.google.com/docs/app-hosting/configure
 
 runConfig:
-  # Increase this value if you'd like to automatically spin up
-  # more instances in response to increased traffic.
-  maxInstances: 1
+  # The CPU allocated to each server instance of your backend, in CPU units.
+  # One CPU unit corresponds to 1 vCPU.
+  cpu: 1
+  # The amount of memory allocated to each server instance of your backend, in MiB.
+  memoryMiB: 512
+  # The maximum number of server instances that can be running at once.
+  # Increase this value to automatically spin up more instances in response to increased traffic.
+  maxInstances: 2
+  # The minimum number of server instances that will be running at once.
+  # Use this to keep a server instance ready to receive traffic.
+  minInstances: 1
