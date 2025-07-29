@@ -220,8 +220,8 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
         } else {
             // SUN
             const sunGeom = new THREE.IcosahedronGeometry(2.5, 3);
-            const sunColor = daylightState === 'day' ? 0xffcc33 : 0xff6633;
-            const sunEmissive = daylightState === 'day' ? 0xffaa00 : 0xff4400;
+            const sunColor = daylightState === 'day' ? 0xffa500 : 0xff6633; // Orange for day, reddish for sunset/sunrise
+            const sunEmissive = daylightState === 'day' ? 0xffa500 : 0xff4400;
 
             const sunMat = new THREE.MeshStandardMaterial({
               color: sunColor,
@@ -374,3 +374,4 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
 
   return <div ref={mountRef} className="w-full h-full rounded-lg overflow-hidden" />;
 }
+
