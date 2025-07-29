@@ -147,8 +147,8 @@ const getWeatherDataFlow = ai.defineFlow(
         feelsLike: Math.round(current.app_temp),
         humidity: Math.round(current.rh),
         windSpeed: Math.round(current.wind_spd * 3.6),
-        sunrise: formatTimeFromTimestamp(current.sunrise_ts, current.timezone),
-        sunset: formatTimeFromTimestamp(current.sunset_ts, current.timezone),
+        sunrise: current.sunrise,
+        sunset: current.sunset,
         currentTime: formatTimeFromTimestamp(current.ts, current.timezone),
         forecast: forecast.map((day: any) => ({
             day: new Date(day.valid_date).toLocaleDateString('en-US', { weekday: 'short' }),
