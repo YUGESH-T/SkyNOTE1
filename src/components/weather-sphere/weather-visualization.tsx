@@ -30,7 +30,7 @@ const getDaylightInfo = (currentTime: string, sunrise: string, sunset: string): 
     const dayDuration = set - rise;
 
     let sunProgress = 0;
-    if (dayDuration > 0 && now > rise && now < set) {
+    if (dayDuration > 0 && now >= rise && now <= set) {
         sunProgress = (now - rise) / dayDuration; // 0 at sunrise, 1 at sunset
     }
 
@@ -209,7 +209,7 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
             const crater = new THREE.Mesh(craterGeom, craterMat);
             const size = Math.random() * 0.3 + 0.1;
             crater.scale.set(size, size, size * 0.5);
-            const pos = new THREE.Vector3().setFromSphericalCoords(2, Math.acos(2 * Math.random() - 1), Math.random() * 2 * Math.PI);
+            const pos = new THREE.Vector3().setFromSphericalCoords(2.01, Math.acos(2 * Math.random() - 1), Math.random() * 2 * Math.PI);
             crater.position.copy(pos);
             crater.lookAt(new THREE.Vector3(0,0,0));
             moon.add(crater);
@@ -219,7 +219,7 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
 
         } else {
             // SUN
-            const sunGeom = new THREE.IcosahedronGeometry(2.5, 15);
+            const sunGeom = new THREE.IcosahedronGeometry(2.5, 3);
             const sunColor = daylightState === 'day' ? 0xffcc33 : 0xff6633;
             const sunEmissive = daylightState === 'day' ? 0xffaa00 : 0xff4400;
 
@@ -374,7 +374,3 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
 
   return <div ref={mountRef} className="w-full h-full rounded-lg overflow-hidden" />;
 }
-
-    
-
-    
