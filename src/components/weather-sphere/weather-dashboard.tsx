@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import type {GetWeatherDataInput} from '@/ai/flows/get-weather-data'
 import WeatherNarrative from './weather-narrative';
 import InteractiveHourlyForecast from './interactive-hourly-forecast';
+import SunriseSunset from './sunrise-sunset';
 
 const weatherColorClasses = {
   Sunny: "from-sky-500 to-blue-700",
@@ -133,7 +134,7 @@ export default function WeatherDashboard() {
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-background">
-        <div className="absolute inset-0 z-0 bg-gradient-to-br from-[#111827] to-[#3730a3]">
+        <div className="absolute inset-0 z-0 bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900">
             {currentWeather && <WeatherVisualization 
                 weatherCondition={currentWeather.condition} 
                 sunrise={currentWeather.sunrise}
@@ -143,15 +144,15 @@ export default function WeatherDashboard() {
         </div>
 
         <div className={cn("relative z-10 h-screen w-full overflow-y-auto no-scrollbar", isLoading && "pointer-events-none")}>
-             <div className="mx-auto max-w-full p-4 md:p-6 lg:max-w-7xl">
-                <div className="w-full lg:w-[calc(100%-420px)] lg:max-w-[800px] float-right">
+             <div className="mx-auto w-full p-4 sm:p-6 lg:p-8">
+                <div className="w-full lg:max-w-7xl lg:mx-auto">
                     {currentWeather ? (
-                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-                            <div className="lg:col-span-2">
+                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+                            <div className="lg:col-span-3">
                                 <LocationSelector onLocationSearch={(location) => handleLocationSearch({ location })} isLoading={isSearching} initialLocation={currentWeather?.location} />
                             </div>
                            
-                            <div className="flex flex-col gap-4 md:gap-6">
+                            <div className="lg:col-span-2 flex flex-col gap-4 md:gap-6">
                                 <CurrentWeather data={currentWeather} />
                                 <InteractiveHourlyForecast data={currentWeather} />
                             </div>
@@ -162,12 +163,13 @@ export default function WeatherDashboard() {
                                     isLoading={isGeneratingNarrative}
                                     onRefresh={() => handleFetchNarrative(currentWeather)}
                                 />
+                                <SunriseSunset sunrise={currentWeather.sunrise} sunset={currentWeather.sunset} />
                                 <HourlyForecast data={currentWeather} />
                                 <WeatherForecast data={currentWeather} />
                             </div>
                         </div>
                     ): (
-                        <div className="flex-grow flex flex-col items-center justify-center bg-card/80 backdrop-blur-xl border border-white/10 shadow-lg rounded-lg p-6 text-center min-h-[50vh] mt-20">
+                        <div className="flex-grow flex flex-col items-center justify-center bg-black/20 backdrop-blur-xl border border-white/10 shadow-lg rounded-lg p-6 text-center min-h-[50vh] mt-20 max-w-lg mx-auto">
                             {isLoading ? (
                                 <>
                                     <Loader2 className="h-12 w-12 animate-spin text-white mb-4" />
