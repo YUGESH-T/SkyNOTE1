@@ -57,39 +57,49 @@ function mapWeatherCondition(weatherbitCode: number): 'Sunny' | 'Cloudy' | 'Rain
     return 'Sunny'; // Default
 }
 
-function formatTimeFromTimestamp(timestamp: number, timezone: string): string {
+function formatTimeFromTimestamp(timestamp: number, timezone?: string): string {
     if (typeof timestamp !== 'number' || isNaN(timestamp)) {
         console.warn(`Invalid timestamp provided: ${timestamp}.`);
         return 'N/A';
     }
     const date = new Date(timestamp * 1000);
-    try {
-        const formatter = new Intl.DateTimeFormat('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-            timeZone: timezone,
-            hour12: true,
-        });
-        return formatter.format(date);
-    } catch (error) {
-        if (error instanceof RangeError) {
-            console.warn(`Invalid timezone '${timezone}'. Falling back to UTC.`);
-            try {
-                const formatter = new Intl.DateTimeFormat('en-US', {
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    timeZone: 'UTC',
-                    hour12: true,
-                });
-                return formatter.format(date);
-            } catch(utcError) {
-                console.error(`Failed to format date even with UTC fallback. Timestamp: ${timestamp}`, utcError);
-                return 'N/A';
+
+    const formatOptions: Intl.DateTimeFormatOptions = {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+    };
+
+    // 1. Try with the provided timezone
+    if (timezone) {
+        try {
+            return new Intl.DateTimeFormat('en-US', { ...formatOptions, timeZone: timezone }).format(date);
+        } catch (e) {
+            if (e instanceof RangeError) {
+                console.warn(`Invalid timezone '${timezone}'. Falling back.`);
+            } else {
+                 console.error(`Error formatting time with timezone '${timezone}':`, e);
             }
         }
-        throw error;
+    }
+
+    // 2. Try with UTC as a fallback
+    try {
+        return new Intl.DateTimeFormat('en-US', { ...formatOptions, timeZone: 'UTC' }).format(date);
+    } catch (e) {
+        console.error('Error formatting time with UTC fallback:', e);
+    }
+    
+    // 3. Last resort: format with system's local timezone
+    try {
+        console.warn('Formatting with system local timezone as a last resort.');
+        return new Intl.DateTimeFormat('en-US', formatOptions).format(date);
+    } catch (e) {
+        console.error('Failed to format date even with system timezone fallback.', e);
+        return 'N/A';
     }
 }
+
 
 async function fetchFromWeatherbit(endpoint: string, params: Record<string, string>) {
     const apiKey = process.env.WEATHERBIT_API_KEY;
