@@ -87,7 +87,7 @@ export default function WeatherDashboard() {
         if (currentWeather) {
             setContentClass('opacity-100 scale-100');
         } else {
-            setGeolocationStatus('error'); // Ensure we show the welcome message on initial fail
+            setGeolocationStatus('error');
         }
       }
     });
@@ -140,54 +140,56 @@ export default function WeatherDashboard() {
 
   return (
     <div className={cn(
-        "w-full max-w-7xl mx-auto sm:rounded-2xl shadow-2xl bg-gradient-to-br min-h-screen sm:min-h-0 sm:h-auto md:h-[calc(100vh-2rem)]", 
+        "relative w-full h-screen overflow-hidden", 
+        "bg-gradient-to-br",
         backgroundClass, 
         "transition-all duration-1000"
     )}>
-        <div className={cn("grid grid-cols-1 md:grid-cols-5 md:h-full", isLoading && "pointer-events-none")}>
-            <div className="md:col-span-2 relative h-64 md:h-full">
-                <div className="absolute inset-0 z-0">
-                    {currentWeather && <WeatherVisualization 
-                        weatherCondition={currentWeather.condition} 
-                        sunrise={currentWeather.sunrise}
-                        sunset={currentWeather.sunset}
-                        currentTime={currentWeather.currentTime}
-                    />}
+        <div className="absolute inset-0 z-0">
+            {currentWeather && <WeatherVisualization 
+                weatherCondition={currentWeather.condition} 
+                sunrise={currentWeather.sunrise}
+                sunset={currentWeather.sunset}
+                currentTime={currentWeather.currentTime}
+            />}
+        </div>
+
+        <div className={cn("relative z-10 h-screen w-full overflow-y-auto no-scrollbar", isLoading && "pointer-events-none")}>
+            <div className="w-full max-w-lg md:max-w-md float-right">
+                 <div className={cn(
+                    "flex flex-col gap-4 p-4 md:p-6 transition-all duration-500 ease-in-out",
+                    contentClass
+                )}>
+                  <LocationSelector onLocationSearch={(location) => handleLocationSearch({ location })} isLoading={isSearching} initialLocation={currentWeather?.location} />
+                    {currentWeather ? (
+                        <>
+                        <CurrentWeather data={currentWeather} />
+                        <WeatherNarrative 
+                          narrative={weatherNarrative} 
+                          isLoading={isGeneratingNarrative}
+                          onRefresh={() => handleFetchNarrative(currentWeather)}
+                        />
+                        <InteractiveHourlyForecast data={currentWeather} />
+                        <HourlyForecast data={currentWeather} />
+                        <WeatherForecast data={currentWeather} />
+                        </>
+                    ): (
+                        <div className="h-full flex flex-col items-center justify-center bg-card/40 backdrop-blur-md border-white/20 shadow-lg rounded-lg p-6 text-center min-h-[50vh] md:min-h-0">
+                            {isLoading ? (
+                                <>
+                                    <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+                                    <p className="text-muted-foreground">Fetching local weather...</p>
+                                </>
+                            ) : showWelcomeMessage ? (
+                                <>
+                                    <Compass className="h-16 w-16 text-primary mb-4" />
+                                    <h2 className="text-2xl font-bold mb-2">Welcome to SKYNOTE</h2>
+                                    <p className="text-muted-foreground text-base">Enter a city to get the latest weather forecast and see a beautiful 3D visualization.</p>
+                                </>
+                            ) : null}
+                        </div>
+                    )}
                 </div>
-            </div>
-            <div className={cn(
-                "md:col-span-3 flex flex-col gap-4 p-4 md:p-6 transition-all duration-500 ease-in-out md:h-full md:overflow-y-auto no-scrollbar",
-                contentClass
-            )}>
-              <LocationSelector onLocationSearch={(location) => handleLocationSearch({ location })} isLoading={isSearching} initialLocation={currentWeather?.location} />
-                {currentWeather ? (
-                    <>
-                    <CurrentWeather data={currentWeather} />
-                    <WeatherNarrative 
-                      narrative={weatherNarrative} 
-                      isLoading={isGeneratingNarrative}
-                      onRefresh={() => handleFetchNarrative(currentWeather)}
-                    />
-                    <InteractiveHourlyForecast data={currentWeather} />
-                    <HourlyForecast data={currentWeather} />
-                    <WeatherForecast data={currentWeather} />
-                    </>
-                ): (
-                    <div className="h-full flex flex-col items-center justify-center bg-card/40 backdrop-blur-md border-white/20 shadow-lg rounded-lg p-6 text-center min-h-[50vh] md:min-h-0">
-                        {isLoading ? (
-                            <>
-                                <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-                                <p className="text-muted-foreground">Fetching local weather...</p>
-                            </>
-                        ) : showWelcomeMessage ? (
-                            <>
-                                <Compass className="h-16 w-16 text-primary mb-4" />
-                                <h2 className="text-2xl font-bold mb-2">Welcome to SKYNOTE</h2>
-                                <p className="text-muted-foreground text-base">Enter a city to get the latest weather forecast and see a beautiful 3D visualization.</p>
-                            </>
-                        ) : null}
-                    </div>
-                )}
             </div>
         </div>
     </div>
