@@ -57,20 +57,10 @@ function mapWeatherCondition(weatherbitCode: number): 'Sunny' | 'Cloudy' | 'Rain
     return 'Sunny'; // Default
 }
 
-function formatTo12Hour(time24: string): string {
-    if (!time24 || !time24.includes(':')) return 'N/A';
-    const [hour, minute] = time24.split(':');
-    let h = parseInt(hour, 10);
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    h = h % 12;
-    h = h ? h : 12; // the hour '0' should be '12'
-    return `${h}:${minute} ${ampm}`;
-}
-
 function formatTimeFromTimestamp(timestamp: number, timezone: string): string {
     if (typeof timestamp !== 'number' || isNaN(timestamp)) {
-        console.warn(`Invalid timestamp provided: ${timestamp}. Falling back to '00:00'.`);
-        return '12:00 AM';
+        console.warn(`Invalid timestamp provided: ${timestamp}.`);
+        return 'N/A';
     }
     const date = new Date(timestamp * 1000);
     try {
@@ -94,7 +84,7 @@ function formatTimeFromTimestamp(timestamp: number, timezone: string): string {
                 return formatter.format(date);
             } catch(utcError) {
                 console.error(`Failed to format date even with UTC fallback. Timestamp: ${timestamp}`, utcError);
-                return '12:00 AM';
+                return 'N/A';
             }
         }
         throw error;
@@ -157,8 +147,8 @@ const getWeatherDataFlow = ai.defineFlow(
         feelsLike: Math.round(current.app_temp),
         humidity: Math.round(current.rh),
         windSpeed: Math.round(current.wind_spd * 3.6),
-        sunrise: formatTo12Hour(current.sunrise),
-        sunset: formatTo12Hour(current.sunset),
+        sunrise: formatTimeFromTimestamp(current.sunrise_ts, current.timezone),
+        sunset: formatTimeFromTimestamp(current.sunset_ts, current.timezone),
         currentTime: formatTimeFromTimestamp(current.ts, current.timezone),
         forecast: forecast.map((day: any) => ({
             day: new Date(day.valid_date).toLocaleDateString('en-US', { weekday: 'short' }),
