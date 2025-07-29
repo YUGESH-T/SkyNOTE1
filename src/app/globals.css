@@ -91,4 +91,35 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+  .animate-sun {
+    animation: spin 20s linear infinite;
+  }
+  .animate-cloud {
+    animation: drift 8s ease-in-out infinite alternate;
+  }
+  .animate-rain {
+     animation: drift 10s ease-in-out infinite alternate;
+  }
+  .animate-snow {
+    animation: spin 15s linear infinite;
+  }
+  .animate-thunder {
+    animation: shake 2.5s cubic-bezier(.36,.07,.19,.97) both infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes drift {
+    from { transform: translateX(-2px); }
+    to { transform: translateX(2px); }
+  }
+  
+  @keyframes shake {
+    0%, 100% { transform: translate(0, 0) rotate(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translate(-1px, 1px) rotate(-1deg); }
+    20%, 40%, 60%, 80% { transform: translate(1px, -1px) rotate(1deg); }
+  }
 }
