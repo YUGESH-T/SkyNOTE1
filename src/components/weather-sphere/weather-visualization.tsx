@@ -362,4 +362,3 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
 
   return <div ref={mountRef} className="w-full h-full rounded-lg overflow-hidden" />;
 }
-
