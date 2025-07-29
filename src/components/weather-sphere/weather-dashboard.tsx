@@ -15,6 +15,7 @@ import HourlyForecast from './hourly-forecast';
 import { cn } from '@/lib/utils';
 import type {GetWeatherDataInput} from '@/ai/flows/get-weather-data'
 import WeatherNarrative from './weather-narrative';
+import InteractiveHourlyForecast from './interactive-hourly-forecast';
 
 const weatherColorClasses = {
   Sunny: "from-sky-400 to-blue-600",
@@ -164,6 +165,7 @@ export default function WeatherDashboard() {
                       isLoading={isGeneratingNarrative}
                       onRefresh={() => handleFetchNarrative(currentWeather)}
                     />
+                    <InteractiveHourlyForecast data={currentWeather} />
                     <HourlyForecast data={currentWeather} />
                     <WeatherForecast data={currentWeather} />
                     </>

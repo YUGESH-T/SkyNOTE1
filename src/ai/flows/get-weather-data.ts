@@ -9,7 +9,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 
 const GetWeatherDataInputSchema = z.object({
   location: z.string().optional().describe('The city name to get weather data for (e.g., "London").'),
@@ -42,6 +42,7 @@ const GetWeatherDataOutputSchema = z.object({
         condition: z.enum(['Sunny', 'Cloudy', 'Rainy', 'Snowy', 'Thunderstorm']),
         temperature: z.number().describe("Temperature for the hour in Celsius."),
         windSpeed: z.number().describe("Wind speed in km/h for the hour."),
+        humidity: z.number().describe("Humidity percentage for the hour."),
     })).min(1).describe("A 24-hour weather forecast."),
 });
 export type GetWeatherDataOutput = z.infer<typeof GetWeatherDataOutputSchema>;
@@ -135,6 +136,7 @@ const getWeatherDataFlow = ai.defineFlow(
             condition: mapWeatherCondition(hour.weather.code),
             temperature: Math.round(hour.temp),
             windSpeed: Math.round(hour.wind_spd * 3.6),
+            humidity: Math.round(hour.rh),
         })).slice(0, 24),
     };
     

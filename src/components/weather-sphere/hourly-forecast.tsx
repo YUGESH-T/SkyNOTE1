@@ -12,6 +12,7 @@ export default function HourlyForecast({ data }: HourlyForecastProps) {
   const chartData = data.hourly.map(item => ({
     time: item.time,
     temperature: item.temperature,
+    humidity: item.humidity,
   }));
 
   const chartConfig = {
@@ -24,10 +25,10 @@ export default function HourlyForecast({ data }: HourlyForecastProps) {
   return (
     <Card className="bg-card/30 backdrop-blur-sm border-white/20 shadow-lg transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-1">
       <CardHeader>
-        <CardTitle className="text-lg md:text-xl">Hourly Forecast</CardTitle>
+        <CardTitle className="text-lg md:text-xl">Temperature Trend</CardTitle>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="h-[200px] w-full">
+        <ChartContainer config={chartConfig} className="h-[150px] w-full">
           <AreaChart data={chartData} margin={{ left: -20, right: 10, top: 10, bottom: 0 }}>
             <defs>
               <linearGradient id="fillTemperature" x1="0" y1="0" x2="0" y2="1">
@@ -41,7 +42,7 @@ export default function HourlyForecast({ data }: HourlyForecastProps) {
               tickLine={false}
               axisLine={false}
               tickMargin={8}
-              tickFormatter={(value, index) => index % 3 === 0 ? value : ""}
+              tickFormatter={(value, index) => index % 4 === 0 ? value : ""}
               className="text-xs fill-muted-foreground"
             />
             <YAxis
@@ -53,7 +54,7 @@ export default function HourlyForecast({ data }: HourlyForecastProps) {
             />
             <Tooltip cursor={{ stroke: 'hsla(var(--foreground), 0.2)', strokeWidth: 1 }} content={<ChartTooltipContent indicator="line" labelFormatter={(label, payload) => {
               const data = payload[0]?.payload;
-              return data ? `${data.time}: ${data.temperature}°C` : label;
+              return data ? `${data.time}: ${data.temperature}°C, ${data.humidity}%` : label;
             }}/>} />
             <Area
               dataKey="temperature"
