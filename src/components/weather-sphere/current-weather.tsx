@@ -18,28 +18,28 @@ export default function CurrentWeather({ data }: CurrentWeatherProps) {
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-start">
-              <p className="text-6xl md:text-7xl font-bold">{data.temperature}</p>
-              <span className="text-xl md:text-2xl font-medium mt-2">°C</span>
+              <p className="text-6xl sm:text-7xl font-bold">{data.temperature}</p>
+              <span className="text-xl sm:text-2xl font-medium mt-2">°C</span>
             </div>
-            <p className="text-lg md:text-xl text-muted-foreground">{data.condition}</p>
+            <p className="text-base sm:text-lg text-muted-foreground">{data.condition}</p>
           </div>
-          <WeatherIcon condition={data.condition} className="w-20 h-20 md:w-24 md:h-24 text-primary drop-shadow-lg" />
+          <WeatherIcon condition={data.condition} className="w-20 h-20 sm:w-24 sm:h-24 text-primary drop-shadow-lg" />
         </div>
-        <div className="mt-4 md:mt-6 grid grid-cols-3 gap-2 md:gap-4 text-center p-2 md:p-4 bg-background/20 rounded-lg">
+        <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-4 text-center p-2 sm:p-4 bg-background/20 rounded-lg">
           <div className="flex flex-col items-center gap-1">
-            <Droplets className="w-5 h-5 md:w-6 md:h-6 text-muted-foreground" />
-            <p className="font-bold text-sm md:text-base">{data.humidity}%</p>
-            <p className="text-xs md:text-sm text-muted-foreground">Humidity</p>
+            <Droplets className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground" />
+            <p className="font-bold text-sm sm:text-base">{data.humidity}%</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">Humidity</p>
           </div>
           <div className="flex flex-col items-center gap-1">
-            <Wind className="w-5 h-5 md:w-6 md:h-6 text-muted-foreground" />
-            <p className="font-bold text-sm md:text-base">{data.windSpeed} km/h</p>
-            <p className="text-xs md:text-sm text-muted-foreground">Wind</p>
+            <Wind className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground" />
+            <p className="font-bold text-sm sm:text-base">{data.windSpeed} km/h</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">Wind</p>
           </div>
            <div className="flex flex-col items-center gap-1">
-            <Thermometer className="w-5 h-5 md:w-6 md:h-6 text-muted-foreground" />
-            <p className="font-bold text-sm md:text-base">{data.feelsLike}°C</p>
-            <p className="text-xs md:text-sm text-muted-foreground">Feels Like</p>
+            <Thermometer className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground" />
+            <p className="font-bold text-sm sm:text-base">{data.feelsLike}°C</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">Feels Like</p>
           </div>
         </div>
       </CardContent>

@@ -35,7 +35,7 @@ export default function WeatherNarrative({ narrative, isLoading, onRefresh }: We
                 <Skeleton className="h-4 w-5/6" />
             </div>
         ) : (
-            <p className="text-sm md:text-base text-muted-foreground">{narrative}</p>
+            <p className="text-sm sm:text-base text-muted-foreground">{narrative}</p>
         )}
       </CardContent>
     </Card>

@@ -98,7 +98,7 @@ export default function LocationSelector({ onLocationSearch, isLoading, initialL
               onKeyDown={handleKeyDown}
               onFocus={() => setShowSuggestions(true)}
               placeholder="Enter a city..."
-              className="text-base md:text-lg bg-card/30 backdrop-blur-sm border-white/20 shadow-lg h-12"
+              className="text-base sm:text-lg bg-card/30 backdrop-blur-sm border-white/20 shadow-lg h-12"
               disabled={isLoading}
               autoComplete="off"
             />
@@ -116,7 +116,7 @@ export default function LocationSelector({ onLocationSearch, isLoading, initialL
                 <li
                   key={index}
                   onClick={() => handleSuggestionClick(s)}
-                  className="px-4 py-2 cursor-pointer rounded-md hover:bg-white/20 text-sm md:text-base"
+                  className="px-4 py-2 cursor-pointer rounded-md hover:bg-white/20 text-sm sm:text-base"
                 >
                   {s}
                 </li>

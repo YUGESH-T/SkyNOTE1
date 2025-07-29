@@ -147,17 +147,12 @@ export default function WeatherDashboard() {
               sunset={currentWeather.sunset}
               currentTime={currentWeather.currentTime}
             />}
-            {isLoading && (
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg z-10">
-                <Loader2 className="h-12 w-12 animate-spin text-white" />
-              </div>
-            )}
         </div>
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-5 h-full">
-            <div className="lg:col-span-3" />
+        <div className={cn("relative z-10 grid grid-cols-1 md:grid-cols-2 h-full", isLoading && "pointer-events-none")}>
+            <div className="md:col-span-1" />
             <div className={cn(
-                "lg:col-span-2 flex flex-col gap-4 md:gap-6 p-4 md:p-6 transition-all duration-500 ease-in-out",
-                "bg-black/10 backdrop-blur-md lg:h-full lg:overflow-y-auto no-scrollbar",
+                "md:col-span-1 flex flex-col gap-4 p-4 transition-all duration-500 ease-in-out",
+                "bg-black/10 backdrop-blur-md md:h-full md:overflow-y-auto no-scrollbar",
                 contentClass
             )}>
               <LocationSelector onLocationSearch={(location) => handleLocationSearch({ location })} isLoading={isSearching} initialLocation={currentWeather?.location} />
@@ -173,7 +168,7 @@ export default function WeatherDashboard() {
                     <WeatherForecast data={currentWeather} />
                     </>
                 ): (
-                    <div className="h-full flex flex-col items-center justify-center bg-card/30 backdrop-blur-sm border-white/20 shadow-lg rounded-lg p-6 md:p-8 mt-2 text-center min-h-[50vh] lg:min-h-0">
+                    <div className="h-full flex flex-col items-center justify-center bg-card/30 backdrop-blur-sm border-white/20 shadow-lg rounded-lg p-6 text-center min-h-[50vh] md:min-h-0">
                         {isLoading ? (
                             <>
                                 <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
