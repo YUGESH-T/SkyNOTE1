@@ -27,6 +27,11 @@ export default function CurrentWeather({ data }: CurrentWeatherProps) {
         </div>
         <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-4 text-center p-2 sm:p-4 bg-background/20 rounded-lg">
           <div className="flex flex-col items-center gap-1">
+            <Thermometer className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground" />
+            <p className="font-bold text-sm sm:text-base">{data.feelsLike}°C</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">Feels Like</p>
+          </div>
+          <div className="flex flex-col items-center gap-1">
             <Droplets className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground" />
             <p className="font-bold text-sm sm:text-base">{data.humidity}%</p>
             <p className="text-xs sm:text-sm text-muted-foreground">Humidity</p>
@@ -35,11 +40,6 @@ export default function CurrentWeather({ data }: CurrentWeatherProps) {
             <Wind className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground" />
             <p className="font-bold text-sm sm:text-base">{data.windSpeed} km/h</p>
             <p className="text-xs sm:text-sm text-muted-foreground">Wind</p>
-          </div>
-           <div className="flex flex-col items-center gap-1">
-            <Thermometer className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground" />
-            <p className="font-bold text-sm sm:text-base">{data.feelsLike}°C</p>
-            <p className="text-xs sm:text-sm text-muted-foreground">Feels Like</p>
           </div>
         </div>
       </CardContent>

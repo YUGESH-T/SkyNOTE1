@@ -1,33 +1,70 @@
 
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 import type { WeatherData } from "@/lib/weather-data";
-import WeatherIcon from "./weather-icon";
-import { Wind } from "lucide-react";
 
 interface HourlyForecastProps {
   data: WeatherData;
 }
 
 export default function HourlyForecast({ data }: HourlyForecastProps) {
+  const chartData = data.hourly.map(item => ({
+    time: item.time,
+    temperature: item.temperature,
+  }));
+
+  const chartConfig = {
+    temperature: {
+      label: "Temperature",
+      color: "hsl(var(--primary))",
+    },
+  };
+
   return (
     <Card className="bg-card/30 backdrop-blur-sm border-white/20 shadow-lg transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-1">
       <CardHeader>
         <CardTitle className="text-lg md:text-xl">Hourly Forecast</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="flex space-x-4 overflow-x-auto pb-4 no-scrollbar">
-          {data.hourly.map((item, index) => (
-            <div key={`${item.time}-${index}`} className="flex flex-col items-center space-y-2 p-3 rounded-lg bg-background/30 flex-shrink-0 transition-all duration-200 ease-in-out hover:bg-background/50 hover:scale-105 min-w-[70px] sm:min-w-[80px]">
-              <p className="font-medium text-sm sm:text-base text-muted-foreground">{item.time}</p>
-              <WeatherIcon condition={item.condition} className="w-8 h-8 sm:w-10 sm:h-10 text-primary drop-shadow-lg" />
-              <p className="font-semibold text-base sm:text-lg">{item.temperature}°</p>
-              <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
-                <Wind className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span>{item.windSpeed}</span>
-              </div>
-            </div>
-          ))}
-        </div>
+        <ChartContainer config={chartConfig} className="h-[200px] w-full">
+          <AreaChart data={chartData} margin={{ left: -20, right: 10, top: 10, bottom: 0 }}>
+            <defs>
+              <linearGradient id="fillTemperature" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="var(--color-temperature)" stopOpacity={0.8} />
+                <stop offset="95%" stopColor="var(--color-temperature)" stopOpacity={0.1} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsla(var(--foreground), 0.1)" />
+            <XAxis
+              dataKey="time"
+              tickLine={false}
+              axisLine={false}
+              tickMargin={8}
+              tickFormatter={(value, index) => index % 3 === 0 ? value : ""}
+              className="text-xs fill-muted-foreground"
+            />
+            <YAxis
+              tickLine={false}
+              axisLine={false}
+              tickMargin={8}
+              tickFormatter={(value) => `${value}°`}
+              className="text-xs fill-muted-foreground"
+            />
+            <Tooltip cursor={{ stroke: 'hsla(var(--foreground), 0.2)', strokeWidth: 1 }} content={<ChartTooltipContent indicator="line" labelFormatter={(label, payload) => {
+              const data = payload[0]?.payload;
+              return data ? `${data.time}: ${data.temperature}°C` : label;
+            }}/>} />
+            <Area
+              dataKey="temperature"
+              type="monotone"
+              fill="url(#fillTemperature)"
+              stroke="var(--color-temperature)"
+              strokeWidth={2}
+              dot={false}
+            />
+          </AreaChart>
+        </ChartContainer>
       </CardContent>
     </Card>
   );
