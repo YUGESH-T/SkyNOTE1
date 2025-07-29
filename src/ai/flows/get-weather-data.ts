@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -57,13 +58,28 @@ function mapWeatherCondition(weatherbitCode: number): 'Sunny' | 'Cloudy' | 'Rain
 }
 
 function formatTimeFromTimestamp(timestamp: number, timezone: string): string {
-    const formatter = new Intl.DateTimeFormat('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZone: timezone,
-        hour12: false,
-    });
-    return formatter.format(new Date(timestamp * 1000));
+    const date = new Date(timestamp * 1000);
+    try {
+        const formatter = new Intl.DateTimeFormat('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZone: timezone,
+            hour12: false,
+        });
+        return formatter.format(date);
+    } catch (error) {
+        if (error instanceof RangeError) {
+            console.warn(`Invalid timezone '${timezone}'. Falling back to UTC.`);
+            const formatter = new Intl.DateTimeFormat('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                timeZone: 'UTC',
+                hour12: false,
+            });
+            return formatter.format(date);
+        }
+        throw error;
+    }
 }
 
 async function fetchFromWeatherbit(endpoint: string, params: Record<string, string>) {
