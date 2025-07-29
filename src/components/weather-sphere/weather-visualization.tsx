@@ -40,13 +40,15 @@ const getDaylightInfo = (currentTime: string, sunrise: string, sunset: string): 
     if (now < rise - 30 || now > set + 30) return { factor: 0, state: 'night', sunPosition: { x: 0, y: 0 } };
     if (now >= rise - 30 && now < rise + 60) return { factor: Math.max(0.1, (now - (rise - 30)) / 90), state: 'sunrise', sunPosition: { x: sunX, y: sunY } };
     if (now >= set - 60 && now < set + 30) return { factor: Math.max(0.1, 1 - (now - (set - 60)) / 90), state: 'sunset', sunPosition: { x: sunX, y: sunY } };
-    if (now < rise || now > set) return { factor: 0, state: 'night', sunPosition: { x: 0, y: 0 } };
-
-    const midday = rise + dayDuration / 2;
-    const timeFromMidday = Math.abs(now - midday);
     
-    const daylight = 1 - (timeFromMidday / (dayDuration / 2));
-    return { factor: Math.sin(daylight * Math.PI / 2) * 0.8 + 0.2, state: 'day', sunPosition: { x: sunX, y: sunY } };
+    if (now >= rise && now <= set) {
+        const midday = rise + dayDuration / 2;
+        const timeFromMidday = Math.abs(now - midday);
+        const daylight = 1 - (timeFromMidday / (dayDuration / 2));
+        return { factor: Math.sin(daylight * Math.PI / 2) * 0.8 + 0.2, state: 'day', sunPosition: { x: sunX, y: sunY } };
+    }
+
+    return { factor: 0, state: 'night', sunPosition: { x: 0, y: 0 } };
 };
 
 
@@ -201,26 +203,13 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
           });
           const moon = new THREE.Mesh(moonGeom, moonMat);
           moon.name = 'moon';
-
-          // Craters
-          const craterGeom = new THREE.SphereGeometry(1, 16, 16);
-          const craterMat = new THREE.MeshStandardMaterial({ color: 0x8899aa, roughness: 1 });
-          for (let i = 0; i < 15; i++) {
-            const crater = new THREE.Mesh(craterGeom, craterMat);
-            const size = Math.random() * 0.3 + 0.1;
-            crater.scale.set(size, size, size * 0.5);
-            const pos = new THREE.Vector3().setFromSphericalCoords(2.01, Math.acos(2 * Math.random() - 1), Math.random() * 2 * Math.PI);
-            crater.position.copy(pos);
-            crater.lookAt(new THREE.Vector3(0,0,0));
-            moon.add(crater);
-          }
           stateRef.weatherGroup.add(moon);
           stateRef.stars = new Stars(scene);
 
         } else {
             // SUN
             const sunGeom = new THREE.IcosahedronGeometry(2.5, 3);
-            const sunColor = daylightState === 'day' ? 0xffa500 : 0xff6633; // Orange for day, reddish for sunset/sunrise
+            const sunColor = daylightState === 'day' ? 0xffa500 : 0xff6633;
             const sunEmissive = daylightState === 'day' ? 0xffa500 : 0xff4400;
 
             const sunMat = new THREE.MeshStandardMaterial({
