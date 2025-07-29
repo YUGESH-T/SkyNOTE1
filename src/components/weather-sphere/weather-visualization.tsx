@@ -5,6 +5,7 @@ import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import type { WeatherCondition } from '@/lib/weather-data';
+import Stars from './stars';
 
 interface WeatherVisualizationProps {
   weatherCondition: WeatherCondition;
@@ -19,23 +20,27 @@ const timeToMinutes = (time: string) => {
   return hours * 60 + minutes;
 };
 
-const getDaylightFactor = (currentTime: string, sunrise: string, sunset: string) => {
-  if (!currentTime || !sunrise || !sunset) return 0.5;
-  const now = timeToMinutes(currentTime);
-  const rise = timeToMinutes(sunrise);
-  const set = timeToMinutes(sunset);
-  
-  if (now < rise || now > set) return 0; // Night
-  const dayDuration = set - rise;
-  if (dayDuration <= 0) return 0.5;
+type DaylightState = 'night' | 'sunrise' | 'day' | 'sunset';
 
-  const midday = rise + dayDuration / 2;
-  const timeFromMidday = Math.abs(now - midday);
-  
-  // A value from 0 (sunrise/sunset) to 1 (midday)
-  const daylight = 1 - (timeFromMidday / (dayDuration / 2));
-  // Clamp to make transitions smoother near ends
-  return Math.sin(daylight * Math.PI / 2);
+const getDaylightInfo = (currentTime: string, sunrise: string, sunset: string): { factor: number; state: DaylightState } => {
+    if (!currentTime || !sunrise || !sunset) return { factor: 0.5, state: 'day' };
+    const now = timeToMinutes(currentTime);
+    const rise = timeToMinutes(sunrise);
+    const set = timeToMinutes(sunset);
+
+    if (now < rise - 30 || now > set + 30) return { factor: 0, state: 'night' };
+    if (now >= rise - 30 && now < rise + 60) return { factor: Math.max(0.1, (now - (rise - 30)) / 90), state: 'sunrise' };
+    if (now >= set - 60 && now < set + 30) return { factor: Math.max(0.1, 1 - (now - (set - 60)) / 90), state: 'sunset' };
+    if (now < rise || now > set) return { factor: 0, state: 'night' };
+    
+    const dayDuration = set - rise;
+    if (dayDuration <= 0) return { factor: 0.5, state: 'day' };
+
+    const midday = rise + dayDuration / 2;
+    const timeFromMidday = Math.abs(now - midday);
+    
+    const daylight = 1 - (timeFromMidday / (dayDuration / 2));
+    return { factor: Math.sin(daylight * Math.PI / 2) * 0.8 + 0.2, state: 'day' };
 };
 
 export default function WeatherVisualization({ weatherCondition, sunrise, sunset, currentTime }: WeatherVisualizationProps) {
@@ -50,6 +55,7 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
     lightning: null as THREE.PointLight | null,
     lightningTimeout: null as NodeJS.Timeout | null,
     clock: new THREE.Clock(),
+    stars: null as Stars | null,
   }).current;
 
   // Setup scene, camera, renderer, controls
@@ -85,6 +91,8 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
       const delta = stateRef.clock.getDelta();
       const elapsedTime = stateRef.clock.elapsedTime;
       
+      stateRef.stars?.update(delta);
+      
       // Particle animation
       if (stateRef.particles) {
         const positions = stateRef.particles.geometry.getAttribute('position');
@@ -101,7 +109,9 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
       if (stateRef.weatherGroup) {
          if (weatherCondition === 'Sunny' && stateRef.weatherGroup.children[0]) {
              const sun = stateRef.weatherGroup.children[0] as THREE.Mesh;
-             sun.scale.setScalar(Math.sin(elapsedTime * 2) * 0.02 + 1);
+             if (sun.name === "sun") {
+                sun.scale.setScalar(Math.sin(elapsedTime * 2) * 0.02 + 1);
+             }
          }
          if (weatherCondition === 'Cloudy' || weatherCondition === 'Thunderstorm') {
             stateRef.weatherGroup.children.forEach((cloud, i) => {
@@ -150,14 +160,16 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
     if (stateRef.weatherGroup) scene.remove(stateRef.weatherGroup);
     if (stateRef.particles) scene.remove(stateRef.particles);
     if (stateRef.lightning) scene.remove(stateRef.lightning);
+    if (stateRef.stars) stateRef.stars.remove();
+
     stateRef.weatherGroup = new THREE.Group();
     stateRef.particles = null;
     stateRef.lightning = null;
+    stateRef.stars = null;
 
 
-    const daylight = getDaylightFactor(currentTime, sunrise, sunset);
-    const isNightBasedOnTime = currentTime ? parseInt(currentTime.split(':')[0], 10) >= 19 : false;
-
+    const { factor: daylight, state: daylightState } = getDaylightInfo(currentTime, sunrise, sunset);
+    
     // Lighting
     scene.clear();
     const ambientLight = new THREE.AmbientLight(0xffffff, daylight * 0.4 + 0.1);
@@ -170,7 +182,7 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
 
     switch (weatherCondition) {
       case 'Sunny': {
-        if (isNightBasedOnTime) {
+        if (daylightState === 'night') {
           // MOON
           const moonGeom = new THREE.SphereGeometry(2, 32, 32);
           const moonMat = new THREE.MeshStandardMaterial({
@@ -181,6 +193,7 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
             roughness: 0.9,
           });
           const moon = new THREE.Mesh(moonGeom, moonMat);
+          moon.name = 'moon';
 
           // Craters
           const craterGeom = new THREE.SphereGeometry(1, 16, 16);
@@ -195,7 +208,9 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
             moon.add(crater);
           }
           stateRef.weatherGroup.add(moon);
-        } else {
+          stateRef.stars = new Stars(scene);
+
+        } else if (daylightState === 'day') {
           // SUN
           const sunGeom = new THREE.IcosahedronGeometry(2.5, 15);
           const sunMat = new THREE.MeshStandardMaterial({
@@ -207,13 +222,29 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
             flatShading: true,
           });
           const sun = new THREE.Mesh(sunGeom, sunMat);
+          sun.name = 'sun';
           stateRef.weatherGroup.add(sun);
+        } else { // sunrise or sunset
+            const sunGeom = new THREE.IcosahedronGeometry(2.5, 15);
+            const sunMat = new THREE.MeshStandardMaterial({
+              color: 0xff6633, // Orange-red
+              emissive: 0xff4400,
+              emissiveIntensity: 0.8,
+              metalness: 0.1,
+              roughness: 0.4,
+              flatShading: true,
+            });
+            const sun = new THREE.Mesh(sunGeom, sunMat);
+            sun.name = 'sun_horizon';
+            sun.position.y = -1; // Lower on horizon
+            sun.position.x = daylightState === 'sunrise' ? -5 : 5;
+            stateRef.weatherGroup.add(sun);
         }
         break;
       }
       case 'Cloudy': {
         const cloudMaterial = new THREE.MeshStandardMaterial({
-          color: isNightBasedOnTime ? 0x48546c : 0xffffff,
+          color: daylight > 0.1 ? 0xffffff : 0x48546c,
           opacity: 0.85,
           transparent: true,
           roughness: 0.8,
@@ -239,6 +270,9 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
             (Math.random() - 0.5) * 4 - 2
           );
           stateRef.weatherGroup.add(cloudGroup);
+        }
+        if (daylightState === 'night') {
+            stateRef.stars = new Stars(scene);
         }
         break;
       }
@@ -268,7 +302,7 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
         if (isSnow) {
             // Add some subtle clouds for atmosphere in snow
             const cloudMaterial = new THREE.MeshStandardMaterial({
-              color: isNightBasedOnTime ? 0x3a4458 : 0xaaaaaa,
+              color: daylight > 0.1 ? 0xaaaaaa : 0x3a4458,
               opacity: 0.5,
               transparent: true,
               roughness: 0.9,
@@ -283,6 +317,9 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
                cloudSphere.scale.set(1.5, 0.8, 1.2);
                stateRef.weatherGroup.add(cloudSphere);
             }
+        }
+        if (daylightState === 'night') {
+            stateRef.stars = new Stars(scene);
         }
         break;
       }
@@ -341,3 +378,5 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
 
   return <div ref={mountRef} className="w-full h-full rounded-lg overflow-hidden" />;
 }
+
+    
