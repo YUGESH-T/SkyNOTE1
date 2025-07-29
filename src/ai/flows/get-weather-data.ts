@@ -58,6 +58,10 @@ function mapWeatherCondition(weatherbitCode: number): 'Sunny' | 'Cloudy' | 'Rain
 }
 
 function formatTimeFromTimestamp(timestamp: number, timezone: string): string {
+    if (typeof timestamp !== 'number' || isNaN(timestamp)) {
+        console.warn(`Invalid timestamp provided: ${timestamp}. Falling back to '00:00'.`);
+        return '00:00';
+    }
     const date = new Date(timestamp * 1000);
     try {
         const formatter = new Intl.DateTimeFormat('en-US', {
@@ -70,13 +74,18 @@ function formatTimeFromTimestamp(timestamp: number, timezone: string): string {
     } catch (error) {
         if (error instanceof RangeError) {
             console.warn(`Invalid timezone '${timezone}'. Falling back to UTC.`);
-            const formatter = new Intl.DateTimeFormat('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                timeZone: 'UTC',
-                hour12: false,
-            });
-            return formatter.format(date);
+            try {
+                const formatter = new Intl.DateTimeFormat('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    timeZone: 'UTC',
+                    hour12: false,
+                });
+                return formatter.format(date);
+            } catch(utcError) {
+                console.error(`Failed to format date even with UTC fallback. Timestamp: ${timestamp}`, utcError);
+                return '00:00';
+            }
         }
         throw error;
     }
