@@ -69,7 +69,6 @@ function formatTimeFromTimestamp(timestamp: number, timezone: string): string {
   } catch (e) {
     if (e instanceof RangeError) {
       console.warn(`Invalid timezone '${timezone}'. Formatting with system default.`);
-      // Fallback for invalid timezone identifiers
       const date = new Date(timestamp * 1000);
       return date.toLocaleTimeString('en-US', {
         hour: 'numeric',
@@ -131,7 +130,6 @@ const getWeatherDataFlow = ai.defineFlow(
     const forecast = forecastData.data;
     const hourly = hourlyData.data;
 
-    // Fetch sunrise/sunset data from the new API
     const sunriseSunsetResponse = await fetch(`https://api.sunrise-sunset.org/json?lat=${current.lat}&lng=${current.lon}&formatted=0`);
     if (!sunriseSunsetResponse.ok) {
         throw new Error(`Sunrise-Sunset API request failed with status ${sunriseSunsetResponse.status}`);
@@ -142,11 +140,17 @@ const getWeatherDataFlow = ai.defineFlow(
         throw new Error(`Sunrise-Sunset API returned status ${sunriseSunsetData.status}`);
     }
 
+    const timeApiResp = await fetch(`https://timeapi.io/api/TimeZone/coordinate?latitude=${current.lat}&longitude=${current.lon}`);
+    if (!timeApiResp.ok) {
+        throw new Error(`Time API request failed with status ${timeApiResp.status}`);
+    }
+    const timeApiData = await timeApiResp.json();
+    const timezone = timeApiData.timeZone;
+
+
     const sunriseDate = new Date(sunriseSunsetData.results.sunrise);
     const sunsetDate = new Date(sunriseSunsetData.results.sunset);
     
-    const timezone = current.timezone;
-
     const sunriseTime = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: timezone }).format(sunriseDate);
     const sunsetTime = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: timezone }).format(sunsetDate);
 
@@ -160,7 +164,7 @@ const getWeatherDataFlow = ai.defineFlow(
         windSpeed: Math.round(current.wind_spd * 3.6),
         sunrise: sunriseTime,
         sunset: sunsetTime,
-        currentTime: formatTimeFromTimestamp(current.ts, current.timezone),
+        currentTime: formatTimeFromTimestamp(current.ts, timezone),
         forecast: forecast.map((day: any) => ({
             day: new Date(day.valid_date).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' }),
             condition: mapWeatherCondition(day.weather.code),
@@ -169,7 +173,7 @@ const getWeatherDataFlow = ai.defineFlow(
             humidity: Math.round(day.rh),
         })),
         hourly: hourly.map((hour: any) => ({
-            time: formatTimeFromTimestamp(hour.ts, hourlyData.timezone),
+            time: formatTimeFromTimestamp(hour.ts, timezone),
             condition: mapWeatherCondition(hour.weather.code),
             temperature: Math.round(hour.temp),
             windSpeed: Math.round(hour.wind_spd * 3.6),
