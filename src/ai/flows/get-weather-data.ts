@@ -91,15 +91,27 @@ function formatTimeFromTimestamp(timestamp: number, timezone: string): string {
   }
 }
 
-function formatAmPm(time24: string): string {
-    if (!/^\d{2}:\d{2}$/.test(time24)) {
-        return time24; // Return as-is if not in HH:MM format
+function convertUtcToLocalTime(utcTime: string, timezone: string): string {
+    try {
+        // Create a date object with today's date and the UTC time
+        const today = new Date().toISOString().slice(0, 10);
+        const utcDate = new Date(`${today}T${utcTime}Z`);
+
+        // Format it to the target timezone
+        const localTime = new Intl.DateTimeFormat('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+            timeZone: timezone,
+        }).format(utcDate);
+
+        return localTime;
+    } catch (error) {
+        console.error('Error converting UTC to local time:', error);
+        return 'N/A';
     }
-    const [hour, minute] = time24.split(':').map(Number);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const hour12 = hour % 12 || 12; // Convert hour to 12-hour format
-    return `${hour12}:${minute.toString().padStart(2, '0')} ${ampm}`;
 }
+
 
 async function fetchFromWeatherbit(endpoint: string, params: Record<string, string>) {
     const apiKey = process.env.WEATHERBIT_API_KEY;
@@ -156,9 +168,21 @@ const getWeatherDataFlow = ai.defineFlow(
     const hourly = hourlyData.data;
     const history = historyData.data;
     const timezone = current.timezone;
+    const currentLat = current.lat;
+    const currentLon = current.lon;
+
+    const sunriseSunsetResponse = await fetch(`https://api.sunrise-sunset.org/json?lat=${currentLat}&lng=${currentLon}&formatted=0`);
+    if (!sunriseSunsetResponse.ok) {
+        throw new Error(`Sunrise-Sunset API request failed with status ${sunriseSunsetResponse.status}`);
+    }
+    const sunriseSunsetData = await sunriseSunsetResponse.json();
+    const sunriseUtc = sunriseSunsetData.results.sunrise;
+    const sunsetUtc = sunriseSunsetData.results.sunset;
+
+    const sunrise = convertUtcToLocalTime(new Date(sunriseUtc).toISOString().substr(11, 8), timezone);
+    const sunset = convertUtcToLocalTime(new Date(sunsetUtc).toISOString().substr(11, 8), timezone);
     
     const transformDailyData = (day: any) => {
-        // Historical data sometimes lacks the nested `weather` object. Fallback to `weather_code`.
         const weatherCode = day.weather?.code ?? day.weather_code;
         return {
           day: new Date(day.valid_date).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' }),
@@ -176,8 +200,8 @@ const getWeatherDataFlow = ai.defineFlow(
         feelsLike: Math.round(current.app_temp),
         humidity: Math.round(current.rh),
         windSpeed: Math.round(current.wind_spd * 3.6),
-        sunrise: formatAmPm(current.sunrise),
-        sunset: formatAmPm(current.sunset),
+        sunrise: sunrise,
+        sunset: sunset,
         currentTime: formatTimeFromTimestamp(current.ts, timezone),
         forecast: forecast.map(transformDailyData),
         history: history.map(transformDailyData),
