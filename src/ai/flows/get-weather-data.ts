@@ -91,6 +91,16 @@ function formatTimeFromTimestamp(timestamp: number, timezone: string): string {
   }
 }
 
+function formatAmPm(time24: string): string {
+    if (!/^\d{2}:\d{2}$/.test(time24)) {
+        return time24; // Return as-is if not in HH:MM format
+    }
+    const [hour, minute] = time24.split(':').map(Number);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 || 12; // Convert hour to 12-hour format
+    return `${hour12}:${minute.toString().padStart(2, '0')} ${ampm}`;
+}
+
 async function fetchFromWeatherbit(endpoint: string, params: Record<string, string>) {
     const apiKey = process.env.WEATHERBIT_API_KEY;
     if (!apiKey) {
@@ -145,18 +155,7 @@ const getWeatherDataFlow = ai.defineFlow(
     const forecast = forecastData.data;
     const hourly = hourlyData.data;
     const history = historyData.data;
-
-
-    const timeApiResp = await fetch(`https://timeapi.io/api/TimeZone/coordinate?latitude=${current.lat}&longitude=${current.lon}`);
-    if (!timeApiResp.ok) {
-        throw new Error(`Time API request failed with status ${timeApiResp.status}`);
-    }
-    const timeApiData = await timeApiResp.json();
-    const timezone = timeApiData.timeZone;
-
-
-    const sunriseTime = formatTimeFromTimestamp(current.sunrise_ts, timezone);
-    const sunsetTime = formatTimeFromTimestamp(current.sunset_ts, timezone);
+    const timezone = current.timezone;
     
     const transformDailyData = (day: any) => {
         // Historical data sometimes lacks the nested `weather` object. Fallback to `weather_code`.
@@ -177,8 +176,8 @@ const getWeatherDataFlow = ai.defineFlow(
         feelsLike: Math.round(current.app_temp),
         humidity: Math.round(current.rh),
         windSpeed: Math.round(current.wind_spd * 3.6),
-        sunrise: sunriseTime,
-        sunset: sunsetTime,
+        sunrise: formatAmPm(current.sunrise),
+        sunset: formatAmPm(current.sunset),
         currentTime: formatTimeFromTimestamp(current.ts, timezone),
         forecast: forecast.map(transformDailyData),
         history: history.map(transformDailyData),
