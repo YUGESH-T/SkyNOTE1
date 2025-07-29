@@ -259,8 +259,8 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
           color: daylight > 0.1 ? 0xdddddd : 0xbbbbbb,
           opacity: 0.85,
           transparent: true,
-          roughness: 0.9,
-          flatShading: true,
+          roughness: 0.8,
+          metalness: 0.1,
           emissive: daylight > 0.1 ? 0x111111 : 0x222222,
         });
 
