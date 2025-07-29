@@ -223,7 +223,7 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
             } else if (daylightState === 'sunset') {
                 sunColor = new THREE.Color(0xfffde7).lerp(new THREE.Color(0xff4500), 1 - daylight * 2);
             } else { // day
-                sunColor = new THREE.Color(0xfffde7);
+                sunColor = new THREE.Color(0xfacc15);
             }
 
             stateRef.sunLight = new THREE.PointLight(sunColor, 2, 50);
@@ -276,31 +276,32 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
       case 'Rainy':
       case 'Snowy': {
         const isSnow = weatherCondition === 'Snowy';
-        // Add clouds for rain too
-        const cloudMaterial = new THREE.MeshStandardMaterial({
-          color: daylight > 0.1 ? 0xaaaaaa : 0x3a4458,
-          opacity: isSnow ? 0.5 : 0.8,
-          transparent: true,
-          roughness: 0.9,
-        });
-        for (let i = 0; i < (isSnow ? 3: 5); i++) {
-            const cloudGroup = new THREE.Group();
-              for (let j = 0; j < 5; j++) {
-                const partGeom = new THREE.IcosahedronGeometry(Math.random() * 0.8 + 0.5, 1);
-                const part = new THREE.Mesh(partGeom, cloudMaterial);
-                part.position.set(
-                  (Math.random() - 0.5) * 2.5,
-                  (Math.random() - 0.5) * 1.5,
-                  (Math.random() - 0.5) * 1.5
-                );
-                cloudGroup.add(part);
-              }
-           cloudGroup.position.set(
-             (Math.random() - 0.5) * 10,
-             2 + (Math.random() - 0.5) * 2,
-             (Math.random() - 0.5) * 6 - 3
-           );
-           stateRef.weatherGroup.add(cloudGroup);
+        if (isSnow) {
+          const cloudMaterial = new THREE.MeshStandardMaterial({
+            color: daylight > 0.1 ? 0xaaaaaa : 0x3a4458,
+            opacity: 0.5,
+            transparent: true,
+            roughness: 0.9,
+          });
+          for (let i = 0; i < 3; i++) {
+              const cloudGroup = new THREE.Group();
+                for (let j = 0; j < 5; j++) {
+                  const partGeom = new THREE.IcosahedronGeometry(Math.random() * 0.8 + 0.5, 1);
+                  const part = new THREE.Mesh(partGeom, cloudMaterial);
+                  part.position.set(
+                    (Math.random() - 0.5) * 2.5,
+                    (Math.random() - 0.5) * 1.5,
+                    (Math.random() - 0.5) * 1.5
+                  );
+                  cloudGroup.add(part);
+                }
+             cloudGroup.position.set(
+               (Math.random() - 0.5) * 10,
+               2 + (Math.random() - 0.5) * 2,
+               (Math.random() - 0.5) * 6 - 3
+             );
+             stateRef.weatherGroup.add(cloudGroup);
+          }
         }
 
         const particleCount = isSnow ? 1500 : 2000;
