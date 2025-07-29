@@ -22,26 +22,33 @@ const timeToMinutes = (time: string) => {
 
 type DaylightState = 'night' | 'sunrise' | 'day' | 'sunset';
 
-const getDaylightInfo = (currentTime: string, sunrise: string, sunset: string): { factor: number; state: DaylightState } => {
-    if (!currentTime || !sunrise || !sunset) return { factor: 0.5, state: 'day' };
+const getDaylightInfo = (currentTime: string, sunrise: string, sunset: string): { factor: number; state: DaylightState; sunPosition: { x: number; y: number } } => {
+    if (!currentTime || !sunrise || !sunset) return { factor: 0.5, state: 'day', sunPosition: { x: 0, y: 5 } };
     const now = timeToMinutes(currentTime);
     const rise = timeToMinutes(sunrise);
     const set = timeToMinutes(sunset);
-
-    if (now < rise - 30 || now > set + 30) return { factor: 0, state: 'night' };
-    if (now >= rise - 30 && now < rise + 60) return { factor: Math.max(0.1, (now - (rise - 30)) / 90), state: 'sunrise' };
-    if (now >= set - 60 && now < set + 30) return { factor: Math.max(0.1, 1 - (now - (set - 60)) / 90), state: 'sunset' };
-    if (now < rise || now > set) return { factor: 0, state: 'night' };
-    
     const dayDuration = set - rise;
-    if (dayDuration <= 0) return { factor: 0.5, state: 'day' };
+
+    let sunProgress = 0;
+    if (dayDuration > 0 && now > rise && now < set) {
+        sunProgress = (now - rise) / dayDuration; // 0 at sunrise, 1 at sunset
+    }
+
+    const sunX = (sunProgress - 0.5) * -16; // Range from 8 to -8
+    const sunY = Math.sin(sunProgress * Math.PI) * 6; // Arched path
+
+    if (now < rise - 30 || now > set + 30) return { factor: 0, state: 'night', sunPosition: { x: 0, y: 0 } };
+    if (now >= rise - 30 && now < rise + 60) return { factor: Math.max(0.1, (now - (rise - 30)) / 90), state: 'sunrise', sunPosition: { x: sunX, y: sunY } };
+    if (now >= set - 60 && now < set + 30) return { factor: Math.max(0.1, 1 - (now - (set - 60)) / 90), state: 'sunset', sunPosition: { x: sunX, y: sunY } };
+    if (now < rise || now > set) return { factor: 0, state: 'night', sunPosition: { x: 0, y: 0 } };
 
     const midday = rise + dayDuration / 2;
     const timeFromMidday = Math.abs(now - midday);
     
     const daylight = 1 - (timeFromMidday / (dayDuration / 2));
-    return { factor: Math.sin(daylight * Math.PI / 2) * 0.8 + 0.2, state: 'day' };
+    return { factor: Math.sin(daylight * Math.PI / 2) * 0.8 + 0.2, state: 'day', sunPosition: { x: sunX, y: sunY } };
 };
+
 
 export default function WeatherVisualization({ weatherCondition, sunrise, sunset, currentTime }: WeatherVisualizationProps) {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -168,7 +175,7 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
     stateRef.stars = null;
 
 
-    const { factor: daylight, state: daylightState } = getDaylightInfo(currentTime, sunrise, sunset);
+    const { factor: daylight, state: daylightState, sunPosition } = getDaylightInfo(currentTime, sunrise, sunset);
     
     // Lighting
     scene.clear();
@@ -210,34 +217,23 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
           stateRef.weatherGroup.add(moon);
           stateRef.stars = new Stars(scene);
 
-        } else if (daylightState === 'day') {
-          // SUN
-          const sunGeom = new THREE.IcosahedronGeometry(2.5, 15);
-          const sunMat = new THREE.MeshStandardMaterial({
-            color: 0xffcc33,
-            emissive: 0xffaa00,
-            emissiveIntensity: 0.6,
-            metalness: 0.1,
-            roughness: 0.2,
-            flatShading: true,
-          });
-          const sun = new THREE.Mesh(sunGeom, sunMat);
-          sun.name = 'sun';
-          stateRef.weatherGroup.add(sun);
-        } else { // sunrise or sunset
+        } else {
+            // SUN
             const sunGeom = new THREE.IcosahedronGeometry(2.5, 15);
+            const sunColor = daylightState === 'day' ? 0xffcc33 : 0xff6633;
+            const sunEmissive = daylightState === 'day' ? 0xffaa00 : 0xff4400;
+
             const sunMat = new THREE.MeshStandardMaterial({
-              color: 0xff6633, // Orange-red
-              emissive: 0xff4400,
+              color: sunColor,
+              emissive: sunEmissive,
               emissiveIntensity: 0.8,
               metalness: 0.1,
               roughness: 0.4,
               flatShading: true,
             });
             const sun = new THREE.Mesh(sunGeom, sunMat);
-            sun.name = 'sun_horizon';
-            sun.position.y = -1; // Lower on horizon
-            sun.position.x = daylightState === 'sunrise' ? -5 : 5;
+            sun.name = 'sun';
+            sun.position.set(sunPosition.x, sunPosition.y, 0);
             stateRef.weatherGroup.add(sun);
         }
         break;
@@ -378,5 +374,7 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
 
   return <div ref={mountRef} className="w-full h-full rounded-lg overflow-hidden" />;
 }
+
+    
 
     
