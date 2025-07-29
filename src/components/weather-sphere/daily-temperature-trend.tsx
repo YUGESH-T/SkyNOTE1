@@ -9,7 +9,7 @@ interface DailyTemperatureTrendProps {
 }
 
 export default function DailyTemperatureTrend({ data }: DailyTemperatureTrendProps) {
-  const chartData = data.forecast.map(item => ({
+  const chartData = data.history.map(item => ({
     day: item.day,
     high: item.tempHigh,
     low: item.tempLow,
@@ -29,7 +29,7 @@ export default function DailyTemperatureTrend({ data }: DailyTemperatureTrendPro
   return (
     <Card className="bg-black/20 backdrop-blur-xl border-white/10 shadow-lg transition-all duration-300 ease-in-out">
       <CardHeader>
-        <CardTitle className="text-lg md:text-xl">7-Day Temperature Trend</CardTitle>
+        <CardTitle className="text-lg md:text-xl">5-Day Temperature Trend</CardTitle>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="h-[150px] w-full">
