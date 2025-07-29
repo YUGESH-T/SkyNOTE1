@@ -24,16 +24,7 @@ const weatherColorClasses = {
   Rainy: "from-indigo-600/80 to-slate-900/80",
   Snowy: "from-blue-300 to-cyan-500",
   Thunderstorm: "from-gray-800 via-gray-900 to-black",
-  Night: "from-gray-900 to-slate-900"
 };
-
-function getIsNight(currentTime: string, sunrise: string, sunset: string): boolean {
-  if (!currentTime || !sunrise || !sunset) return false;
-  const now = parseInt(currentTime.replace(':', ''), 10);
-  const rise = parseInt(sunrise.replace(':', ''), 10);
-  const set = parseInt(sunset.replace(':', ''), 10);
-  return now < rise || now > set;
-}
 
 export default function WeatherDashboard() {
   const [currentWeather, setCurrentWeather] = useState<WeatherData | null>(null);
@@ -126,8 +117,7 @@ export default function WeatherDashboard() {
     );
   }
 
-  const isNight = currentWeather ? getIsNight(currentWeather.currentTime, currentWeather.sunrise, currentWeather.sunset) : false;
-  const backgroundClass = currentWeather ? (isNight ? weatherColorClasses.Night : weatherColorClasses[currentWeather.condition] || "from-gray-500 to-gray-700") : "from-gray-900 to-slate-900";
+  const backgroundClass = currentWeather ? (weatherColorClasses[currentWeather.condition] || "from-gray-500 to-gray-700") : "from-gray-900 to-slate-900";
   
   const showWelcomeMessage = geolocationStatus === 'error' && !currentWeather;
   const isLoading = isSearching || (geolocationStatus === 'pending' && !currentWeather);
@@ -135,12 +125,7 @@ export default function WeatherDashboard() {
   return (
     <div className="relative w-full h-screen overflow-hidden bg-background">
         <div className={cn("absolute inset-0 z-0 bg-gradient-to-br transition-colors duration-1000", backgroundClass)}>
-            {currentWeather && <WeatherVisualization 
-                weatherCondition={currentWeather.condition} 
-                sunrise={currentWeather.sunrise}
-                sunset={currentWeather.sunset}
-                currentTime={currentWeather.currentTime}
-            />}
+            {currentWeather && <WeatherVisualization weatherCondition={currentWeather.condition} />}
         </div>
 
         <div className={cn("relative z-10 h-screen w-full overflow-y-auto no-scrollbar", isLoading && "pointer-events-none")}>

@@ -6,52 +6,12 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Lensflare, LensflareElement } from 'three/examples/jsm/objects/Lensflare.js';
 import type { WeatherCondition } from '@/lib/weather-data';
-import Stars from './stars';
 
 interface WeatherVisualizationProps {
   weatherCondition: WeatherCondition;
-  sunrise: string;
-  sunset: string;
-  currentTime: string;
 }
 
-const timeToMinutes = (time: string) => {
-  if (!time || !time.includes(':')) return 0;
-  const [hours, minutes] = time.split(':').map(Number);
-  return hours * 60 + minutes;
-};
-
-type DaylightState = 'night' | 'sunrise' | 'day' | 'sunset';
-
-const getDaylightInfo = (currentTime: string, sunrise: string, sunset: string): { factor: number; state: DaylightState; sunPosition: { x: number; y: number; z: number } } => {
-    if (!currentTime || !sunrise || !sunset) return { factor: 0.5, state: 'day', sunPosition: { x: 0, y: 5, z: 0 } };
-    const now = timeToMinutes(currentTime);
-    const rise = timeToMinutes(sunrise);
-    const set = timeToMinutes(sunset);
-    const dayDuration = set - rise;
-
-    let sunProgress = 0;
-    if (dayDuration > 0) {
-        sunProgress = (now - rise) / dayDuration; // 0 at sunrise, 1 at sunset
-    }
-
-    const sunX = Math.cos(sunProgress * Math.PI) * 10;
-    const sunY = Math.sin(sunProgress * Math.PI) * 6;
-    const sunZ = Math.sin(sunProgress * Math.PI) * -4;
-
-    if (now < rise - 30 || now > set + 30) return { factor: 0, state: 'night', sunPosition: { x: 0, y: -10, z: 0 } }; // Keep moon/stars centered
-    if (now >= rise - 30 && now < rise + 60) return { factor: Math.max(0.1, (now - (rise - 30)) / 90), state: 'sunrise', sunPosition: { x: sunX, y: sunY, z: sunZ } };
-    if (now >= set - 60 && now < set + 30) return { factor: Math.max(0.1, 1 - (now - (set - 60)) / 90), state: 'sunset', sunPosition: { x: sunX, y: sunY, z: sunZ } };
-    
-    if (now >= rise && now <= set) {
-        return { factor: Math.sin(sunProgress * Math.PI) * 0.9 + 0.1, state: 'day', sunPosition: { x: sunX, y: sunY, z: sunZ } };
-    }
-
-    return { factor: 0, state: 'night', sunPosition: { x: 0, y: -10, z: 0 } };
-};
-
-
-export default function WeatherVisualization({ weatherCondition, sunrise, sunset, currentTime }: WeatherVisualizationProps) {
+export default function WeatherVisualization({ weatherCondition }: WeatherVisualizationProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const stateRef = useRef({
     renderer: null as THREE.WebGLRenderer | null,
@@ -63,7 +23,6 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
     lightning: null as THREE.PointLight | null,
     lightningTimeout: null as NodeJS.Timeout | null,
     clock: new THREE.Clock(),
-    stars: null as Stars | null,
     sunLight: null as THREE.PointLight | null,
   }).current;
 
@@ -99,8 +58,6 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
       
       const delta = stateRef.clock.getDelta();
       const elapsedTime = stateRef.clock.elapsedTime;
-      
-      stateRef.stars?.update(delta);
       
       // Particle animation
       if (stateRef.particles) {
@@ -170,98 +127,65 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
     if (stateRef.particles) scene.remove(stateRef.particles);
     if (stateRef.lightning) scene.remove(stateRef.lightning);
     if (stateRef.sunLight) scene.remove(stateRef.sunLight);
-    if (stateRef.stars) stateRef.stars.remove();
 
     stateRef.weatherGroup = new THREE.Group();
     stateRef.particles = null;
     stateRef.lightning = null;
     stateRef.sunLight = null;
-    stateRef.stars = null;
 
-
-    const { factor: daylight, state: daylightState, sunPosition } = getDaylightInfo(currentTime, sunrise, sunset);
     
     // Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, daylight * 0.2 + 0.1);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
     
-    const directionalLightColor = daylightState === 'day' ? 0xfffde7 : 0x6677cc;
-    const directionalLight = new THREE.DirectionalLight(directionalLightColor, daylight * 0.6 + 0.1);
-    directionalLight.position.set(sunPosition.x, sunPosition.y, sunPosition.z + 5);
+    const directionalLight = new THREE.DirectionalLight(0xfffde7, 0.8);
+    directionalLight.position.set(5, 5, 5);
     directionalLight.castShadow = true;
     scene.add(directionalLight);
 
     // FOG
-    if (daylightState !== 'night') {
-        const fogColor = new THREE.Color(0x87ceeb).lerp(new THREE.Color(0x000033), 1 - daylight);
-        scene.fog = new THREE.Fog(fogColor, 10, 40);
-    } else {
-        scene.fog = new THREE.Fog(0x000011, 10, 30);
-    }
+    scene.fog = new THREE.Fog(0x87ceeb, 10, 40);
 
     switch (weatherCondition) {
       case 'Sunny': {
-        if (daylightState === 'night') {
-          // MOON
-          const moonGeom = new THREE.SphereGeometry(1.5, 32, 32);
-          const moonMat = new THREE.MeshStandardMaterial({
-            color: 0xddeeff,
-            emissive: 0x8899cc,
-            emissiveIntensity: 0.1,
-            metalness: 0.1,
-            roughness: 0.9,
-          });
-          const moon = new THREE.Mesh(moonGeom, moonMat);
-          moon.name = 'moon';
-          stateRef.weatherGroup.add(moon);
-          stateRef.stars = new Stars(scene);
+        const sunPosition = { x: 0, y: 5, z: -10 };
+        const sunColor = new THREE.Color(0xfacc15);
 
-        } else {
-            // SUN
-            let sunColor: THREE.Color;
-            if (daylightState === 'sunrise') {
-                sunColor = new THREE.Color(0xfffde7).lerp(new THREE.Color(0xff6633), 1 - daylight * 2);
-            } else if (daylightState === 'sunset') {
-                sunColor = new THREE.Color(0xfffde7).lerp(new THREE.Color(0xff4500), 1 - daylight * 2);
-            } else { // day
-                sunColor = new THREE.Color(0xfacc15);
-            }
+        stateRef.sunLight = new THREE.PointLight(0xffffff, 1.5, 2000);
+        stateRef.sunLight.position.copy(sunPosition);
+        stateRef.sunLight.color.set(sunColor);
+        
+        const textureLoader = new THREE.TextureLoader();
+        const textureFlare0 = textureLoader.load( 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/lensflare/lensflare0.png' );
+        const textureFlare3 = textureLoader.load( 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/lensflare/lensflare3.png' );
+        
+        const lensflare = new Lensflare();
+        lensflare.addElement( new LensflareElement( textureFlare0, 512, 0, stateRef.sunLight.color ) );
+        lensflare.addElement( new LensflareElement( textureFlare3, 60, 0.6 ) );
+        lensflare.addElement( new LensflareElement( textureFlare3, 70, 0.7 ) );
+        lensflare.addElement( new LensflareElement( textureFlare3, 120, 0.9 ) );
+        lensflare.addElement( new LensflareElement( textureFlare3, 70, 1.0 ) );
 
-            stateRef.sunLight = new THREE.PointLight(0xffffff, 1.5, 2000);
-            stateRef.sunLight.position.copy(sunPosition);
-            stateRef.sunLight.color.set(sunColor);
-            
-            const textureLoader = new THREE.TextureLoader();
-            const textureFlare0 = textureLoader.load( 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/lensflare/lensflare0.png' );
-            const textureFlare3 = textureLoader.load( 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/lensflare/lensflare3.png' );
-            
-            const lensflare = new Lensflare();
-            lensflare.addElement( new LensflareElement( textureFlare0, 512, 0, stateRef.sunLight.color ) );
-            lensflare.addElement( new LensflareElement( textureFlare3, 60, 0.6 ) );
-            lensflare.addElement( new LensflareElement( textureFlare3, 70, 0.7 ) );
-            lensflare.addElement( new LensflareElement( textureFlare3, 120, 0.9 ) );
-            lensflare.addElement( new LensflareElement( textureFlare3, 70, 1.0 ) );
+        stateRef.sunLight.add( lensflare );
+        scene.add(stateRef.sunLight);
 
-            stateRef.sunLight.add( lensflare );
-            scene.add(stateRef.sunLight);
-
-            const sunGeom = new THREE.SphereGeometry(2, 32, 32);
-            const sunMat = new THREE.MeshBasicMaterial({ color: sunColor });
-            const sun = new THREE.Mesh(sunGeom, sunMat);
-            sun.name = 'sun';
-            sun.position.copy(sunPosition);
-            stateRef.weatherGroup.add(sun);
-        }
+        const sunGeom = new THREE.SphereGeometry(2, 32, 32);
+        const sunMat = new THREE.MeshBasicMaterial({ color: sunColor });
+        const sun = new THREE.Mesh(sunGeom, sunMat);
+        sun.name = 'sun';
+        sun.position.copy(sunPosition);
+        stateRef.weatherGroup.add(sun);
+        
         break;
       }
       case 'Cloudy': {
         const cloudMaterial = new THREE.MeshStandardMaterial({
-          color: daylight > 0.1 ? 0xdddddd : 0xbbbbbb,
+          color: 0xdddddd,
           opacity: 0.85,
           transparent: true,
           roughness: 0.8,
           metalness: 0.1,
-          emissive: daylight > 0.1 ? 0x111111 : 0x222222,
+          emissive: 0x111111,
         });
 
         for (let i = 0; i < 5; i++) {
@@ -283,9 +207,6 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
             (Math.random() - 0.5) * 4 - 2
           );
           stateRef.weatherGroup.add(cloudGroup);
-        }
-        if (daylightState === 'night') {
-            stateRef.stars = new Stars(scene);
         }
         break;
       }
@@ -310,14 +231,11 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
         stateRef.particles = new THREE.Points(geometry, material);
         scene.add(stateRef.particles);
 
-        if (daylightState === 'night') {
-            stateRef.stars = new Stars(scene);
-        }
         break;
       }
       case 'Snowy': {
         const cloudMaterial = new THREE.MeshStandardMaterial({
-            color: daylight > 0.1 ? 0xaaaaaa : 0x3a4458,
+            color: 0xaaaaaa,
             opacity: 0.5,
             transparent: true,
             roughness: 0.9,
@@ -362,9 +280,6 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
         stateRef.particles = new THREE.Points(geometry, material);
         scene.add(stateRef.particles);
 
-        if (daylightState === 'night') {
-            stateRef.stars = new Stars(scene);
-        }
         break;
       }
       case 'Thunderstorm': {
@@ -373,7 +288,6 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
           opacity: 0.9,
           transparent: true,
           roughness: 0.9,
-          flatShading: true,
           emissive: 0x222233,
         });
 
@@ -418,7 +332,7 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
     }
     scene.add(stateRef.weatherGroup);
 
-  }, [weatherCondition, sunrise, sunset, currentTime, stateRef]);
+  }, [weatherCondition, stateRef]);
 
   return <div ref={mountRef} className="w-full h-full rounded-lg overflow-hidden" />;
 }
