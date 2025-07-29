@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { WeatherData } from "@/lib/weather-data";
 import WeatherIcon from "./weather-icon";
 import { Droplets } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface WeatherForecastProps {
   data: WeatherData;
@@ -16,7 +17,10 @@ export default function WeatherForecast({ data }: WeatherForecastProps) {
       <CardContent>
         <div className="space-y-2 sm:space-y-4">
           {data.forecast.map((item, index) => (
-            <div key={`${item.day}-${index}`} className="flex items-center justify-between p-2 rounded-lg transition-all duration-200 ease-in-out hover:bg-background/30 hover:scale-[1.02] text-sm sm:text-base">
+            <div key={`${item.day}-${index}`} className={cn(
+              "flex items-center justify-between p-2 rounded-lg text-sm sm:text-base transition-all duration-200 ease-in-out",
+              "hover:bg-white/10 hover:scale-[1.03]"
+              )}>
               <p className="font-medium w-10 sm:w-12">{item.day}</p>
               <WeatherIcon condition={item.condition} className="w-7 h-7 sm:w-8 sm:h-8 text-primary drop-shadow-lg" />
               <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">

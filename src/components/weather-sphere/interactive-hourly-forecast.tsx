@@ -4,6 +4,7 @@ import type { WeatherData } from "@/lib/weather-data";
 import WeatherIcon from "./weather-icon";
 import { Droplets, Wind, RefreshCw } from "lucide-react";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { cn } from "@/lib/utils";
 
 interface InteractiveHourlyForecastProps {
   data: WeatherData;
@@ -25,10 +26,13 @@ export default function InteractiveHourlyForecast({ data }: InteractiveHourlyFor
         }}
         className="w-full"
         >
-            <CarouselContent>
+            <CarouselContent className="-ml-1">
             {data.hourly.map((item, index) => (
-                <CarouselItem key={index} className="basis-1/4 sm:basis-1/5 md:basis-1/6">
-                    <div className="flex flex-col items-center justify-center gap-2 p-2 rounded-lg text-center h-full">
+                <CarouselItem key={index} className="basis-1/3 sm:basis-1/4 md:basis-1/5 pl-1">
+                    <div className={cn(
+                        "flex flex-col items-center justify-center gap-2 p-2 rounded-lg text-center h-full transition-all duration-200 ease-in-out",
+                        "hover:bg-white/10 hover:scale-105"
+                    )}>
                         <p className="text-xs sm:text-sm font-medium text-muted-foreground">{item.time}</p>
                         <WeatherIcon condition={item.condition} className="w-8 h-8 text-primary drop-shadow-lg" />
                         <p className="text-lg sm:text-xl font-bold">{item.temperature}°</p>
