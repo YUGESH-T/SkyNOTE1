@@ -98,7 +98,7 @@ export default function LocationSelector({ onLocationSearch, isLoading, initialL
               onKeyDown={handleKeyDown}
               onFocus={() => setShowSuggestions(true)}
               placeholder="Enter a city..."
-              className="text-base bg-card/40 backdrop-blur-md border-white/20 shadow-lg h-12"
+              className="text-base bg-black/20 backdrop-blur-xl border-white/10 shadow-lg h-12"
               disabled={isLoading}
               autoComplete="off"
             />
@@ -109,7 +109,7 @@ export default function LocationSelector({ onLocationSearch, isLoading, initialL
         </Button>
       </div>
       {showSuggestions && suggestions.length > 0 && (
-        <Card className="absolute z-10 w-full mt-2 bg-card/80 backdrop-blur-md border-white/20 shadow-xl animate-in fade-in-0 zoom-in-95">
+        <Card className="absolute z-10 w-full mt-2 bg-black/50 backdrop-blur-xl border-white/10 shadow-xl animate-in fade-in-0 zoom-in-95">
           <CardContent className="p-2">
             <ul>
               {suggestions.map((s, index) => (

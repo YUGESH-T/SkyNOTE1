@@ -23,7 +23,7 @@ export default function HourlyForecast({ data }: HourlyForecastProps) {
   };
 
   return (
-    <Card className="bg-card/30 backdrop-blur-sm border-white/20 shadow-lg transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-1">
+    <Card className="bg-black/20 backdrop-blur-xl border-white/10 shadow-lg transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-1">
       <CardHeader>
         <CardTitle className="text-lg md:text-xl">Temperature Trend</CardTitle>
       </CardHeader>

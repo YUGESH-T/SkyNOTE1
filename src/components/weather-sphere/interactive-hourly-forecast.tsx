@@ -10,7 +10,7 @@ interface InteractiveHourlyForecastProps {
 
 export default function InteractiveHourlyForecast({ data }: InteractiveHourlyForecastProps) {
   return (
-    <Card className="bg-card/40 backdrop-blur-md border-white/20 shadow-lg transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-1">
+    <Card className="bg-black/20 backdrop-blur-xl border-white/10 shadow-lg transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-1">
       <CardHeader>
         <div className="flex items-center justify-between">
             <CardTitle className="text-lg md:text-xl">Hourly Forecast</CardTitle>
@@ -24,7 +24,7 @@ export default function InteractiveHourlyForecast({ data }: InteractiveHourlyFor
                     "hover:bg-white/10 hover:scale-105"
                 )}>
                     <p className="text-xs md:text-sm font-medium text-foreground/80">{item.time}</p>
-                    <WeatherIcon condition={item.condition} className="w-8 h-8 text-primary drop-shadow-lg" />
+                    <WeatherIcon condition={item.condition} className="w-8 h-8 text-white drop-shadow-lg" />
                     <p className="text-base md:text-lg font-bold">{item.temperature}°</p>
                     <div className="flex items-center gap-1 text-xs text-foreground/60">
                         <Wind className="w-3 h-3" />

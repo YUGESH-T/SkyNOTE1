@@ -18,12 +18,12 @@ import WeatherNarrative from './weather-narrative';
 import InteractiveHourlyForecast from './interactive-hourly-forecast';
 
 const weatherColorClasses = {
-  Sunny: "from-sky-500 to-blue-700",
-  Cloudy: "from-slate-500 to-gray-700",
-  Rainy: "from-indigo-600 to-slate-900",
-  Snowy: "from-blue-300 to-cyan-500",
-  Thunderstorm: "from-gray-800 via-gray-900 to-black",
-  Night: "from-gray-900 to-slate-900"
+  Sunny: "from-sky-500/80 to-blue-700/80",
+  Cloudy: "from-slate-500/80 to-gray-700/80",
+  Rainy: "from-indigo-600/80 to-slate-900/80",
+  Snowy: "from-blue-300/80 to-cyan-500/80",
+  Thunderstorm: "from-gray-800/80 via-gray-900/80 to-black/80",
+  Night: "from-gray-900/80 to-slate-900/80"
 };
 
 function getIsNight(currentTime: string, sunrise: string, sunset: string): boolean {
@@ -40,7 +40,6 @@ export default function WeatherDashboard() {
   const [isMounted, setIsMounted] = useState(false);
   const [isSearching, startSearching] = useTransition();
   const [isGeneratingNarrative, startGeneratingNarrative] = useTransition();
-  const [contentClass, setContentClass] = useState('opacity-0 scale-95');
   const [geolocationStatus, setGeolocationStatus] = useState<'pending' | 'success' | 'error'>('pending');
 
   const { toast } = useToast();
@@ -61,22 +60,18 @@ export default function WeatherDashboard() {
     startSearching(async () => {
       if (!params.location && !(typeof params.lat === 'number' && typeof params.lon === 'number')) return;
       
-      setContentClass('opacity-0 scale-95');
       setWeatherNarrative(null);
 
       try {
         const newWeather = await getWeatherData(params);
-        setTimeout(() => {
-            setCurrentWeather(newWeather);
-            setContentClass('opacity-100 scale-100');
-            handleFetchNarrative(newWeather);
-            if (params.lat && params.lon && geolocationStatus !== 'success') {
-                toast({
-                    title: `Weather updated for your location`,
-                    description: `Currently ${newWeather.condition}, ${newWeather.temperature}°C.`,
-                });
-            }
-        }, 300)
+        setCurrentWeather(newWeather);
+        handleFetchNarrative(newWeather);
+        if (params.lat && params.lon && geolocationStatus !== 'success') {
+            toast({
+                title: `Weather updated for your location`,
+                description: `Currently ${newWeather.condition}, ${newWeather.temperature}°C.`,
+            });
+        }
       } catch (error: any) {
         console.error("Failed to fetch weather data:", error);
         toast({
@@ -84,9 +79,7 @@ export default function WeatherDashboard() {
           title: "Search Failed",
           description: error.message || "Could not fetch weather data for that location.",
         });
-        if (currentWeather) {
-            setContentClass('opacity-100 scale-100');
-        } else {
+        if (!currentWeather) {
             setGeolocationStatus('error');
         }
       }
@@ -126,14 +119,14 @@ export default function WeatherDashboard() {
 
   if (!isMounted) {
     return (
-      <div className="w-full h-screen flex items-center justify-center bg-gradient-to-br from-gray-800 to-slate-900">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      <div className="w-full h-screen flex items-center justify-center bg-blue-950">
+        <Loader2 className="h-16 w-16 animate-spin text-white" />
       </div>
     );
   }
 
   const isNight = currentWeather ? getIsNight(currentWeather.currentTime, currentWeather.sunrise, currentWeather.sunset) : false;
-  const backgroundClass = currentWeather ? (isNight ? weatherColorClasses.Night : weatherColorClasses[currentWeather.condition] || "from-gray-500 to-gray-700") : "from-gray-900 to-slate-900";
+  const backgroundClass = currentWeather ? (isNight ? weatherColorClasses.Night : weatherColorClasses[currentWeather.condition] || "from-gray-500/80 to-gray-700/80") : "from-gray-900/80 to-slate-900/80";
   
   const showWelcomeMessage = geolocationStatus === 'error' && !currentWeather;
   const isLoading = isSearching || (geolocationStatus === 'pending' && !currentWeather);
@@ -156,10 +149,7 @@ export default function WeatherDashboard() {
 
         <div className={cn("relative z-10 h-screen w-full overflow-y-auto no-scrollbar", isLoading && "pointer-events-none")}>
             <div className="w-full max-w-lg md:max-w-md float-right">
-                 <div className={cn(
-                    "flex flex-col gap-4 p-4 md:p-6 transition-all duration-500 ease-in-out",
-                    contentClass
-                )}>
+                 <div className="flex flex-col gap-4 p-4 md:p-6 min-h-screen">
                   <LocationSelector onLocationSearch={(location) => handleLocationSearch({ location })} isLoading={isSearching} initialLocation={currentWeather?.location} />
                     {currentWeather ? (
                         <>
@@ -174,17 +164,17 @@ export default function WeatherDashboard() {
                         <WeatherForecast data={currentWeather} />
                         </>
                     ): (
-                        <div className="h-full flex flex-col items-center justify-center bg-card/40 backdrop-blur-md border-white/20 shadow-lg rounded-lg p-6 text-center min-h-[50vh] md:min-h-0">
+                        <div className="flex-grow flex flex-col items-center justify-center bg-black/20 backdrop-blur-md border border-white/10 shadow-lg rounded-lg p-6 text-center">
                             {isLoading ? (
                                 <>
-                                    <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-                                    <p className="text-muted-foreground">Fetching local weather...</p>
+                                    <Loader2 className="h-12 w-12 animate-spin text-white mb-4" />
+                                    <p className="text-white/70">Fetching local weather...</p>
                                 </>
                             ) : showWelcomeMessage ? (
                                 <>
-                                    <Compass className="h-16 w-16 text-primary mb-4" />
-                                    <h2 className="text-2xl font-bold mb-2">Welcome to SKYNOTE</h2>
-                                    <p className="text-muted-foreground text-base">Enter a city to get the latest weather forecast and see a beautiful 3D visualization.</p>
+                                    <Compass className="h-16 w-16 text-white/90 mb-4" />
+                                    <h2 className="text-2xl font-bold mb-2 text-white">Welcome to SKYNOTE</h2>
+                                    <p className="text-white/70 text-base">Enter a city to get the latest weather forecast and see a beautiful 3D visualization.</p>
                                 </>
                             ) : null}
                         </div>

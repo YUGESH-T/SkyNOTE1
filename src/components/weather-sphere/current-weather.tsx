@@ -9,7 +9,7 @@ interface CurrentWeatherProps {
 
 export default function CurrentWeather({ data }: CurrentWeatherProps) {
   return (
-    <Card className="bg-card/40 backdrop-blur-md border-white/20 shadow-lg transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-1">
+    <Card className="bg-black/20 backdrop-blur-xl border-white/10 shadow-lg transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-1">
       <CardHeader className="pb-2">
         <CardTitle className="text-xl md:text-2xl font-bold">{data.location}</CardTitle>
         <CardDescription className="text-sm text-foreground/80">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</CardDescription>
@@ -23,9 +23,9 @@ export default function CurrentWeather({ data }: CurrentWeatherProps) {
             </div>
             <p className="text-base md:text-lg text-foreground/80 -mt-2">{data.condition}</p>
           </div>
-          <WeatherIcon condition={data.condition} className="w-20 h-20 md:w-24 md:h-24 text-primary drop-shadow-lg" />
+          <WeatherIcon condition={data.condition} className="w-20 h-20 md:w-24 md:h-24 text-white drop-shadow-lg" />
         </div>
-        <div className="mt-4 grid grid-cols-3 gap-2 md:gap-4 text-center p-2 md:p-4 bg-foreground/10 rounded-lg">
+        <div className="mt-4 grid grid-cols-3 gap-2 md:gap-4 text-center p-2 md:p-4 bg-white/5 rounded-lg">
           <div className="flex flex-col items-center gap-1">
             <Thermometer className="w-5 h-5 md:w-6 md:h-6 text-foreground/80" />
             <p className="font-bold text-sm md:text-base">{data.feelsLike}°C</p>
