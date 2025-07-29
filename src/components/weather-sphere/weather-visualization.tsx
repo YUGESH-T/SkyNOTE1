@@ -4,6 +4,7 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { Lensflare, LensflareElement } from 'three/examples/jsm/objects/Lensflare.js';
 import type { WeatherCondition } from '@/lib/weather-data';
 import Stars from './stars';
 
@@ -226,8 +227,22 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
                 sunColor = new THREE.Color(0xfacc15);
             }
 
-            stateRef.sunLight = new THREE.PointLight(sunColor, 2, 50);
+            stateRef.sunLight = new THREE.PointLight(0xffffff, 1.5, 2000);
             stateRef.sunLight.position.copy(sunPosition);
+            stateRef.sunLight.color.set(sunColor);
+            
+            const textureLoader = new THREE.TextureLoader();
+            const textureFlare0 = textureLoader.load( 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/lensflare/lensflare0.png' );
+            const textureFlare3 = textureLoader.load( 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/lensflare/lensflare3.png' );
+            
+            const lensflare = new Lensflare();
+            lensflare.addElement( new LensflareElement( textureFlare0, 512, 0, stateRef.sunLight.color ) );
+            lensflare.addElement( new LensflareElement( textureFlare3, 60, 0.6 ) );
+            lensflare.addElement( new LensflareElement( textureFlare3, 70, 0.7 ) );
+            lensflare.addElement( new LensflareElement( textureFlare3, 120, 0.9 ) );
+            lensflare.addElement( new LensflareElement( textureFlare3, 70, 1.0 ) );
+
+            stateRef.sunLight.add( lensflare );
             scene.add(stateRef.sunLight);
 
             const sunGeom = new THREE.SphereGeometry(2, 32, 32);
@@ -273,11 +288,34 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
         }
         break;
       }
-      case 'Rainy':
+      case 'Rainy': {
+        const particleCount = 2000;
+        const positions = [];
+        for (let i = 0; i < particleCount; i++) {
+          positions.push((Math.random() - 0.5) * 30, (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20);
+        }
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        
+        const material = new THREE.PointsMaterial({
+          color: 0xaaccff,
+          size: 0.04,
+          transparent: true,
+          opacity: 0.8,
+          blending: THREE.AdditiveBlending,
+          sizeAttenuation: true
+        });
+        
+        stateRef.particles = new THREE.Points(geometry, material);
+        scene.add(stateRef.particles);
+
+        if (daylightState === 'night') {
+            stateRef.stars = new Stars(scene);
+        }
+        break;
+      }
       case 'Snowy': {
-        const isSnow = weatherCondition === 'Snowy';
-        if (isSnow) {
-          const cloudMaterial = new THREE.MeshStandardMaterial({
+        const cloudMaterial = new THREE.MeshStandardMaterial({
             color: daylight > 0.1 ? 0xaaaaaa : 0x3a4458,
             opacity: 0.5,
             transparent: true,
@@ -302,9 +340,8 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
              );
              stateRef.weatherGroup.add(cloudGroup);
           }
-        }
 
-        const particleCount = isSnow ? 1500 : 2000;
+        const particleCount = 1500;
         const positions = [];
         for (let i = 0; i < particleCount; i++) {
           positions.push((Math.random() - 0.5) * 30, (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20);
@@ -313,8 +350,8 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
         geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
         
         const material = new THREE.PointsMaterial({
-          color: isSnow ? 0xffffff : 0xaaccff,
-          size: isSnow ? 0.08 : 0.04,
+          color: 0xffffff,
+          size: 0.08,
           transparent: true,
           opacity: 0.8,
           blending: THREE.AdditiveBlending,
@@ -384,3 +421,5 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
 
   return <div ref={mountRef} className="w-full h-full rounded-lg overflow-hidden" />;
 }
+
+    
