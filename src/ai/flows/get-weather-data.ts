@@ -57,12 +57,13 @@ function mapWeatherCondition(weatherbitCode: number): 'Sunny' | 'Cloudy' | 'Rain
 }
 
 function formatTimeFromTimestamp(timestamp: number, timezone: string): string {
-    return new Date(timestamp * 1000).toLocaleTimeString('en-US', {
-        timeZone: timezone,
+    const formatter = new Intl.DateTimeFormat('en-US', {
         hour: '2-digit',
         minute: '2-digit',
-        hour12: false
+        timeZone: timezone,
+        hour12: false,
     });
+    return formatter.format(new Date(timestamp * 1000));
 }
 
 async function fetchFromWeatherbit(endpoint: string, params: Record<string, string>) {
