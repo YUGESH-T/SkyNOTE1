@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { WeatherData } from "@/lib/weather-data";
 import WeatherIcon from "./weather-icon";
-import { Droplets, Wind, RefreshCw } from "lucide-react";
+import { Droplet, ArrowLeftRight } from "lucide-react";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { cn } from "@/lib/utils";
 
@@ -16,7 +16,6 @@ export default function InteractiveHourlyForecast({ data }: InteractiveHourlyFor
       <CardHeader>
         <div className="flex items-center justify-between">
             <CardTitle className="text-lg md:text-xl">Hourly Forecast</CardTitle>
-            <RefreshCw className="w-5 h-5 text-muted-foreground hidden" />
         </div>
       </CardHeader>
       <CardContent>
@@ -35,13 +34,13 @@ export default function InteractiveHourlyForecast({ data }: InteractiveHourlyFor
                     )}>
                         <p className="text-xs sm:text-sm font-medium text-muted-foreground">{item.time}</p>
                         <WeatherIcon condition={item.condition} className="w-8 h-8 text-primary drop-shadow-lg" />
-                        <p className="text-lg sm:text-xl font-bold">{item.temperature}°</p>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Wind className="w-3 h-3" />
+                        <p className="text-xl sm:text-2xl font-bold">{item.temperature}°</p>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <ArrowLeftRight className="w-3.5 h-3.5" />
                             <span>{item.windSpeed}kmh</span>
                         </div>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Droplets className="w-3 h-3" />
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <Droplet className="w-3.5 h-3.5" />
                             <span>{item.humidity}%</span>
                         </div>
                     </div>
