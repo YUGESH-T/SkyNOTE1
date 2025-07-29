@@ -131,6 +131,26 @@ const getWeatherDataFlow = ai.defineFlow(
     const forecast = forecastData.data;
     const hourly = hourlyData.data;
 
+    // Fetch sunrise/sunset data from the new API
+    const sunriseSunsetResponse = await fetch(`https://api.sunrise-sunset.org/json?lat=${current.lat}&lng=${current.lon}&formatted=0`);
+    if (!sunriseSunsetResponse.ok) {
+        throw new Error(`Sunrise-Sunset API request failed with status ${sunriseSunsetResponse.status}`);
+    }
+    const sunriseSunsetData = await sunriseSunsetResponse.json();
+
+    if (sunriseSunsetData.status !== 'OK') {
+        throw new Error(`Sunrise-Sunset API returned status ${sunriseSunsetData.status}`);
+    }
+
+    const sunriseDate = new Date(sunriseSunsetData.results.sunrise);
+    const sunsetDate = new Date(sunriseSunsetData.results.sunset);
+    
+    const timezone = current.timezone;
+
+    const sunriseTime = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: timezone }).format(sunriseDate);
+    const sunsetTime = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: timezone }).format(sunsetDate);
+
+
     const transformedData: GetWeatherDataOutput = {
         location: current.city_name,
         condition: mapWeatherCondition(current.weather.code),
@@ -138,8 +158,8 @@ const getWeatherDataFlow = ai.defineFlow(
         feelsLike: Math.round(current.app_temp),
         humidity: Math.round(current.rh),
         windSpeed: Math.round(current.wind_spd * 3.6),
-        sunrise: formatTimeFromTimestamp(current.sunrise_ts, current.timezone),
-        sunset: formatTimeFromTimestamp(current.sunset_ts, current.timezone),
+        sunrise: sunriseTime,
+        sunset: sunsetTime,
         currentTime: formatTimeFromTimestamp(current.ts, current.timezone),
         forecast: forecast.map((day: any) => ({
             day: new Date(day.valid_date).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' }),
