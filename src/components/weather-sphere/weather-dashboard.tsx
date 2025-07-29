@@ -10,9 +10,11 @@ import LocationSelector from './location-selector';
 import { Loader2, Compass } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getWeatherData } from '@/ai/flows/get-weather-data';
+import { getWeatherNarrative } from '@/ai/flows/get-weather-narrative';
 import HourlyForecast from './hourly-forecast';
 import { cn } from '@/lib/utils';
 import type {GetWeatherDataInput} from '@/ai/flows/get-weather-data'
+import WeatherNarrative from './weather-narrative';
 
 const weatherColorClasses = {
   Sunny: "from-sky-400 to-blue-600",
@@ -25,6 +27,7 @@ const weatherColorClasses = {
 
 function getIsNight(currentTime: string, sunrise: string, sunset: string): boolean {
   if (!currentTime || !sunrise || !sunset) return false;
+  if (parseInt(currentTime.split(':')[0]) >= 19) return true;
   const now = parseInt(currentTime.replace(':', ''), 10);
   const rise = parseInt(sunrise.replace(':', ''), 10);
   const set = parseInt(sunset.replace(':', ''), 10);
@@ -33,24 +36,40 @@ function getIsNight(currentTime: string, sunrise: string, sunset: string): boole
 
 export default function WeatherDashboard() {
   const [currentWeather, setCurrentWeather] = useState<WeatherData | null>(null);
+  const [weatherNarrative, setWeatherNarrative] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [isSearching, startSearching] = useTransition();
+  const [isGeneratingNarrative, startGeneratingNarrative] = useTransition();
   const [contentClass, setContentClass] = useState('opacity-0 scale-95');
   const [geolocationStatus, setGeolocationStatus] = useState<'pending' | 'success' | 'error'>('pending');
 
   const { toast } = useToast();
+
+  const handleFetchNarrative = useCallback(async (weatherData: WeatherData) => {
+    startGeneratingNarrative(async () => {
+      try {
+        const result = await getWeatherNarrative(weatherData);
+        setWeatherNarrative(result.narrative);
+      } catch (error) {
+        console.error("Failed to fetch weather narrative:", error);
+        setWeatherNarrative("Could not generate a weather summary at this time.");
+      }
+    });
+  }, []);
 
   const handleLocationSearch = useCallback((params: GetWeatherDataInput) => {
     startSearching(async () => {
       if (!params.location && !(typeof params.lat === 'number' && typeof params.lon === 'number')) return;
       
       setContentClass('opacity-0 scale-95');
+      setWeatherNarrative(null);
 
       try {
         const newWeather = await getWeatherData(params);
         setTimeout(() => {
             setCurrentWeather(newWeather);
             setContentClass('opacity-100 scale-100');
+            handleFetchNarrative(newWeather);
             if (params.lat && params.lon && geolocationStatus !== 'success') {
                 toast({
                     title: `Weather updated for your location`,
@@ -72,7 +91,7 @@ export default function WeatherDashboard() {
         }
       }
     });
-  }, [toast, currentWeather, geolocationStatus]);
+  }, [toast, currentWeather, geolocationStatus, handleFetchNarrative]);
 
 
   useEffect(() => {
@@ -145,6 +164,11 @@ export default function WeatherDashboard() {
                 {currentWeather ? (
                     <>
                     <CurrentWeather data={currentWeather} />
+                    <WeatherNarrative 
+                      narrative={weatherNarrative} 
+                      isLoading={isGeneratingNarrative}
+                      onRefresh={() => handleFetchNarrative(currentWeather)}
+                    />
                     <HourlyForecast data={currentWeather} />
                     <WeatherForecast data={currentWeather} />
                     </>
