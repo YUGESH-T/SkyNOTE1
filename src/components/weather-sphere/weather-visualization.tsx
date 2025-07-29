@@ -256,11 +256,12 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
       }
       case 'Cloudy': {
         const cloudMaterial = new THREE.MeshStandardMaterial({
-          color: daylight > 0.1 ? 0xffffff : 0x48546c,
+          color: daylight > 0.1 ? 0xdddddd : 0xbbbbbb,
           opacity: 0.85,
           transparent: true,
-          roughness: 0.8,
-          flatShading: true
+          roughness: 0.9,
+          flatShading: true,
+          emissive: daylight > 0.1 ? 0x111111 : 0x222222,
         });
 
         for (let i = 0; i < 5; i++) {
@@ -421,5 +422,3 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
 
   return <div ref={mountRef} className="w-full h-full rounded-lg overflow-hidden" />;
 }
-
-    
