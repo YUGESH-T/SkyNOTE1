@@ -98,7 +98,7 @@ export default function LocationSelector({ onLocationSearch, isLoading, initialL
               onKeyDown={handleKeyDown}
               onFocus={() => setShowSuggestions(true)}
               placeholder="Enter a city..."
-              className="text-base sm:text-lg bg-card/30 backdrop-blur-sm border-white/20 shadow-lg h-12"
+              className="text-base bg-card/40 backdrop-blur-md border-white/20 shadow-lg h-12"
               disabled={isLoading}
               autoComplete="off"
             />

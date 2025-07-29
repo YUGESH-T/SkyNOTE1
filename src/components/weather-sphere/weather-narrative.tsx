@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, RefreshCw, Sparkles } from "lucide-react";
+import { RefreshCw, Sparkles } from "lucide-react";
 import { Skeleton } from "../ui/skeleton";
 
 interface WeatherNarrativeProps {
@@ -11,11 +11,11 @@ interface WeatherNarrativeProps {
 
 export default function WeatherNarrative({ narrative, isLoading, onRefresh }: WeatherNarrativeProps) {
   return (
-    <Card className="bg-card/30 backdrop-blur-sm border-white/20 shadow-lg transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-1">
+    <Card className="bg-card/40 backdrop-blur-md border-white/20 shadow-lg transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-1">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-primary" />
-            <CardTitle className="text-lg md:text-xl">AI Summary</CardTitle>
+            <CardTitle className="text-xl">AI Summary</CardTitle>
         </div>
         <Button
             variant="ghost"
@@ -35,7 +35,7 @@ export default function WeatherNarrative({ narrative, isLoading, onRefresh }: We
                 <Skeleton className="h-4 w-5/6" />
             </div>
         ) : (
-            <p className="text-sm sm:text-base text-muted-foreground">{narrative}</p>
+            <p className="text-base text-foreground/80">{narrative}</p>
         )}
       </CardContent>
     </Card>

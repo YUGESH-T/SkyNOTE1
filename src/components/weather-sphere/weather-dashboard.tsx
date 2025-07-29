@@ -18,12 +18,12 @@ import WeatherNarrative from './weather-narrative';
 import InteractiveHourlyForecast from './interactive-hourly-forecast';
 
 const weatherColorClasses = {
-  Sunny: "from-sky-400 to-blue-600",
-  Cloudy: "from-slate-400 to-gray-600",
-  Rainy: "from-indigo-500 to-slate-800",
-  Snowy: "from-blue-200 to-cyan-400",
-  Thunderstorm: "from-gray-700 via-gray-900 to-black",
-  Night: "from-gray-800 to-slate-900"
+  Sunny: "from-sky-500 to-blue-700",
+  Cloudy: "from-slate-500 to-gray-700",
+  Rainy: "from-indigo-600 to-slate-900",
+  Snowy: "from-blue-300 to-cyan-500",
+  Thunderstorm: "from-gray-800 via-gray-900 to-black",
+  Night: "from-gray-900 to-slate-900"
 };
 
 function getIsNight(currentTime: string, sunrise: string, sunset: string): boolean {
@@ -128,13 +128,13 @@ export default function WeatherDashboard() {
   if (!isMounted) {
     return (
       <div className="w-full h-screen flex items-center justify-center bg-gradient-to-br from-gray-800 to-slate-900">
-        <Loader2 className="h-12 w-12 md:h-16 md:w-16 animate-spin text-primary" />
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     );
   }
 
   const isNight = currentWeather ? getIsNight(currentWeather.currentTime, currentWeather.sunrise, currentWeather.sunset) : false;
-  const backgroundClass = currentWeather ? (isNight ? weatherColorClasses.Night : weatherColorClasses[currentWeather.condition] || "from-gray-400 to-gray-600") : "from-gray-800 to-slate-900";
+  const backgroundClass = currentWeather ? (isNight ? weatherColorClasses.Night : weatherColorClasses[currentWeather.condition] || "from-gray-500 to-gray-700") : "from-gray-900 to-slate-900";
   
   const showWelcomeMessage = geolocationStatus === 'error' && !currentWeather;
   const isLoading = isSearching || (geolocationStatus === 'pending' && !currentWeather);
@@ -152,8 +152,7 @@ export default function WeatherDashboard() {
         <div className={cn("relative z-10 grid grid-cols-1 md:grid-cols-2 h-full", isLoading && "pointer-events-none")}>
             <div className="md:col-span-1" />
             <div className={cn(
-                "md:col-span-1 flex flex-col gap-4 p-4 transition-all duration-500 ease-in-out",
-                "bg-black/10 backdrop-blur-md md:h-full md:overflow-y-auto no-scrollbar",
+                "md:col-span-1 flex flex-col gap-4 p-4 transition-all duration-500 ease-in-out md:h-full md:overflow-y-auto no-scrollbar",
                 contentClass
             )}>
               <LocationSelector onLocationSearch={(location) => handleLocationSearch({ location })} isLoading={isSearching} initialLocation={currentWeather?.location} />
@@ -170,7 +169,7 @@ export default function WeatherDashboard() {
                     <WeatherForecast data={currentWeather} />
                     </>
                 ): (
-                    <div className="h-full flex flex-col items-center justify-center bg-card/30 backdrop-blur-sm border-white/20 shadow-lg rounded-lg p-6 text-center min-h-[50vh] md:min-h-0">
+                    <div className="h-full flex flex-col items-center justify-center bg-card/40 backdrop-blur-md border-white/20 shadow-lg rounded-lg p-6 text-center min-h-[50vh] md:min-h-0">
                         {isLoading ? (
                             <>
                                 <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
@@ -178,9 +177,9 @@ export default function WeatherDashboard() {
                             </>
                         ) : showWelcomeMessage ? (
                             <>
-                                <Compass className="h-12 w-12 md:h-16 md:w-16 text-primary mb-4" />
-                                <h2 className="text-xl md:text-2xl font-bold mb-2">Welcome to SKYNOTE</h2>
-                                <p className="text-muted-foreground text-sm md:text-base">Enter a city to get the latest weather forecast and see a beautiful 3D visualization.</p>
+                                <Compass className="h-16 w-16 text-primary mb-4" />
+                                <h2 className="text-2xl font-bold mb-2">Welcome to SKYNOTE</h2>
+                                <p className="text-muted-foreground text-base">Enter a city to get the latest weather forecast and see a beautiful 3D visualization.</p>
                             </>
                         ) : null}
                     </div>

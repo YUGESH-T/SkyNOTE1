@@ -184,7 +184,7 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
     const ambientLight = new THREE.AmbientLight(0xffffff, daylight * 0.4 + 0.1);
     scene.add(ambientLight);
     
-    const directionalLightColor = daylightState === 'day' ? 0xfacc15 : 0xffffff;
+    const directionalLightColor = daylightState === 'day' ? 0xfffde7 : 0xffffff;
     const directionalLight = new THREE.DirectionalLight(directionalLightColor, daylight * 0.8 + 0.2);
     directionalLight.position.set(5, 10, 7);
     directionalLight.castShadow = true;
@@ -210,7 +210,7 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
         } else {
             // SUN
             const sunGeom = new THREE.SphereGeometry(2.5, 32, 32);
-            const sunColor = daylightState === 'day' ? 0xfacc15 : 0xff6633;
+            const sunColor = daylightState === 'day' ? 0xfffde7 : 0xff6633;
 
             const sunMat = new THREE.MeshBasicMaterial({ color: sunColor });
             const sun = new THREE.Mesh(sunGeom, sunMat);
