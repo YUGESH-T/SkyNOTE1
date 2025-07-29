@@ -120,14 +120,9 @@ export default function WeatherDashboard() {
   const isLoading = isSearching || (geolocationStatus === 'pending' && !currentWeather);
 
   return (
-    <div className={`w-full max-w-7xl mx-auto p-2 sm:p-4 md:p-6 rounded-none sm:rounded-2xl shadow-2xl bg-gradient-to-br ${backgroundClass} transition-all duration-1000 min-h-screen sm:min-h-0`}>
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 md:gap-6">
-        <div className="lg:col-span-3 flex flex-col gap-4 md:gap-6">
-          <div className={cn(
-            "relative flex-grow h-[300px] sm:h-[400px] lg:h-auto bg-black/20 backdrop-blur-md shadow-lg",
-            "border border-white/10 rounded-xl"
-          )}>
-            {currentWeather && <WeatherVisualization 
+    <div className={cn("relative w-full max-w-7xl mx-auto sm:rounded-2xl shadow-2xl bg-gradient-to-br overflow-hidden min-h-screen sm:min-h-0 sm:h-[calc(100vh-2rem)]", backgroundClass, "transition-all duration-1000")}>
+        <div className="absolute inset-0 z-0">
+         {currentWeather && <WeatherVisualization 
               weatherCondition={currentWeather.condition} 
               sunrise={currentWeather.sunrise}
               sunset={currentWeather.sunset}
@@ -138,35 +133,39 @@ export default function WeatherDashboard() {
                 <Loader2 className="h-12 w-12 animate-spin text-white" />
               </div>
             )}
-          </div>
         </div>
-
-        <div className={cn("lg:col-span-2 flex flex-col gap-4 md:gap-6 transition-all duration-500 ease-in-out", contentClass)}>
-          <LocationSelector onLocationSearch={(location) => handleLocationSearch({ location })} isLoading={isSearching} initialLocation={currentWeather?.location} />
-          {currentWeather ? (
-            <>
-              <CurrentWeather data={currentWeather} />
-              <HourlyForecast data={currentWeather} />
-              <WeatherForecast data={currentWeather} />
-            </>
-          ): (
-            <div className="h-full flex flex-col items-center justify-center bg-card/30 backdrop-blur-sm border-white/20 shadow-lg rounded-lg p-6 md:p-8 mt-2 text-center min-h-[50vh] lg:min-h-0">
-                 {isLoading ? (
-                     <>
-                        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-                        <p className="text-muted-foreground">Fetching local weather...</p>
-                     </>
-                 ) : showWelcomeMessage ? (
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-5 h-full">
+            <div className="lg:col-span-3" />
+            <div className={cn(
+                "lg:col-span-2 flex flex-col gap-4 md:gap-6 p-4 md:p-6 transition-all duration-500 ease-in-out",
+                "bg-black/10 backdrop-blur-md lg:h-full lg:overflow-y-auto no-scrollbar",
+                contentClass
+            )}>
+              <LocationSelector onLocationSearch={(location) => handleLocationSearch({ location })} isLoading={isSearching} initialLocation={currentWeather?.location} />
+                {currentWeather ? (
                     <>
-                        <Compass className="h-12 w-12 md:h-16 md:w-16 text-primary mb-4" />
-                        <h2 className="text-xl md:text-2xl font-bold mb-2">Welcome to SKYNOTE</h2>
-                        <p className="text-muted-foreground text-sm md:text-base">Enter a city to get the latest weather forecast and see a beautiful 3D visualization.</p>
+                    <CurrentWeather data={currentWeather} />
+                    <HourlyForecast data={currentWeather} />
+                    <WeatherForecast data={currentWeather} />
                     </>
-                 ) : null}
+                ): (
+                    <div className="h-full flex flex-col items-center justify-center bg-card/30 backdrop-blur-sm border-white/20 shadow-lg rounded-lg p-6 md:p-8 mt-2 text-center min-h-[50vh] lg:min-h-0">
+                        {isLoading ? (
+                            <>
+                                <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+                                <p className="text-muted-foreground">Fetching local weather...</p>
+                            </>
+                        ) : showWelcomeMessage ? (
+                            <>
+                                <Compass className="h-12 w-12 md:h-16 md:w-16 text-primary mb-4" />
+                                <h2 className="text-xl md:text-2xl font-bold mb-2">Welcome to SKYNOTE</h2>
+                                <p className="text-muted-foreground text-sm md:text-base">Enter a city to get the latest weather forecast and see a beautiful 3D visualization.</p>
+                            </>
+                        ) : null}
+                    </div>
+                )}
             </div>
-          )}
         </div>
-      </div>
     </div>
   );
 }
