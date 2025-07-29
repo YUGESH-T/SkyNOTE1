@@ -98,12 +98,12 @@ export default function LocationSelector({ onLocationSearch, isLoading, initialL
               onKeyDown={handleKeyDown}
               onFocus={() => setShowSuggestions(true)}
               placeholder="Enter a city..."
-              className="text-base bg-card/80 backdrop-blur-xl border-white/10 shadow-lg h-12"
+              className="text-base bg-black/20 backdrop-blur-xl border-white/10 shadow-lg h-12"
               disabled={isLoading}
               autoComplete="off"
             />
         </div>
-        <Button type="submit" onClick={handleSearch} disabled={isLoading || !location} className="h-12 shrink-0 bg-card/80 backdrop-blur-xl border-white/10 hover:bg-card">
+        <Button type="submit" onClick={handleSearch} disabled={isLoading || !location} className="h-12 shrink-0 bg-black/20 backdrop-blur-xl border-white/10 hover:bg-card">
           {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
           <span className="sr-only">Search</span>
         </Button>
