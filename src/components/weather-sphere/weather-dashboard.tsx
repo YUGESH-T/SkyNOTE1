@@ -148,7 +148,7 @@ export default function WeatherDashboard() {
         </div>
 
         <div className={cn("relative z-10 h-screen w-full overflow-y-auto no-scrollbar", isLoading && "pointer-events-none")}>
-            <div className="w-full max-w-lg md:max-w-md float-right">
+            <div className="w-full max-w-lg md:max-w-lg float-right">
                  <div className="flex flex-col gap-4 p-4 md:p-6 min-h-screen">
                   <LocationSelector onLocationSearch={(location) => handleLocationSearch({ location })} isLoading={isSearching} initialLocation={currentWeather?.location} />
                     {currentWeather ? (
@@ -164,7 +164,7 @@ export default function WeatherDashboard() {
                         <WeatherForecast data={currentWeather} />
                         </>
                     ): (
-                        <div className="flex-grow flex flex-col items-center justify-center bg-black/20 backdrop-blur-md border border-white/10 shadow-lg rounded-lg p-6 text-center">
+                        <div className="flex-grow flex flex-col items-center justify-center bg-black/20 backdrop-blur-xl border border-white/10 shadow-lg rounded-lg p-6 text-center">
                             {isLoading ? (
                                 <>
                                     <Loader2 className="h-12 w-12 animate-spin text-white mb-4" />
