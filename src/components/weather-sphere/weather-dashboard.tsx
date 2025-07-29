@@ -19,8 +19,8 @@ import InteractiveHourlyForecast from './interactive-hourly-forecast';
 import SunriseSunset from './sunrise-sunset';
 
 const weatherColorClasses = {
-  Sunny: "from-sky-500 to-blue-700",
-  Cloudy: "from-slate-500 to-gray-700",
+  Sunny: "from-sky-400 to-blue-600",
+  Cloudy: "from-[#061a57] via-[#5a5c6a] to-[#a7a8b2]",
   Rainy: "from-indigo-600/80 to-slate-900/80",
   Snowy: "from-blue-300 to-cyan-500",
   Thunderstorm: "from-gray-800 via-gray-900 to-black",
@@ -134,7 +134,7 @@ export default function WeatherDashboard() {
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-background">
-        <div className="absolute inset-0 z-0 bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900">
+        <div className={cn("absolute inset-0 z-0 bg-gradient-to-br transition-colors duration-1000", backgroundClass)}>
             {currentWeather && <WeatherVisualization 
                 weatherCondition={currentWeather.condition} 
                 sunrise={currentWeather.sunrise}
@@ -144,20 +144,20 @@ export default function WeatherDashboard() {
         </div>
 
         <div className={cn("relative z-10 h-screen w-full overflow-y-auto no-scrollbar", isLoading && "pointer-events-none")}>
-             <div className="mx-auto w-full p-4 sm:p-6 lg:p-8">
-                <div className="w-full lg:max-w-7xl lg:mx-auto">
+             <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
+                <div className="w-full">
                     {currentWeather ? (
-                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-                            <div className="lg:col-span-3">
+                         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 md:gap-6">
+                            <div className="lg:col-span-5">
                                 <LocationSelector onLocationSearch={(location) => handleLocationSearch({ location })} isLoading={isSearching} initialLocation={currentWeather?.location} />
                             </div>
                            
-                            <div className="lg:col-span-2 flex flex-col gap-4 md:gap-6">
+                            <div className="lg:col-span-3 flex flex-col gap-4 md:gap-6">
                                 <CurrentWeather data={currentWeather} />
                                 <InteractiveHourlyForecast data={currentWeather} />
                             </div>
 
-                            <div className="flex flex-col gap-4 md:gap-6">
+                            <div className="lg:col-span-2 flex flex-col gap-4 md:gap-6">
                                 <WeatherNarrative 
                                     narrative={weatherNarrative} 
                                     isLoading={isGeneratingNarrative}
