@@ -149,7 +149,7 @@ export default function WeatherDashboard() {
                     {currentWeather ? (
                          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 md:gap-6">
                             <div className="lg:col-span-5">
-                                <LocationSelector onLocationSearch={(location) => handleLocationSearch({ location })} isLoading={isSearching} initialLocation={currentWeather?.location} />
+                                <LocationSelector onLocationSearch={(location) => handleLocationSearch({ location })} isLoading={isSearching} initialLocation={currentWeather.location} />
                             </div>
                            
                             <div className="lg:col-span-3 flex flex-col gap-4 md:gap-6">
