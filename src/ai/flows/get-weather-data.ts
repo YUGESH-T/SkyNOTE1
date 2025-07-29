@@ -57,49 +57,30 @@ function mapWeatherCondition(weatherbitCode: number): 'Sunny' | 'Cloudy' | 'Rain
     return 'Sunny'; // Default
 }
 
-function formatTimeFromTimestamp(timestamp: number, timezone?: string): string {
-    if (typeof timestamp !== 'number' || isNaN(timestamp)) {
-        console.warn(`Invalid timestamp provided: ${timestamp}.`);
-        return 'N/A';
-    }
+function formatTimeFromTimestamp(timestamp: number, timezone: string): string {
+  try {
     const date = new Date(timestamp * 1000);
-
-    const formatOptions: Intl.DateTimeFormatOptions = {
+    return new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: timezone,
+    }).format(date);
+  } catch (e) {
+    if (e instanceof RangeError) {
+      console.warn(`Invalid timezone '${timezone}'. Formatting with system default.`);
+      // Fallback for invalid timezone identifiers
+      const date = new Date(timestamp * 1000);
+      return date.toLocaleTimeString('en-US', {
         hour: 'numeric',
         minute: '2-digit',
         hour12: true,
-    };
-
-    // 1. Try with the provided timezone
-    if (timezone) {
-        try {
-            return new Intl.DateTimeFormat('en-US', { ...formatOptions, timeZone: timezone }).format(date);
-        } catch (e) {
-            if (e instanceof RangeError) {
-                console.warn(`Invalid timezone '${timezone}'. Falling back.`);
-            } else {
-                 console.error(`Error formatting time with timezone '${timezone}':`, e);
-            }
-        }
+      });
     }
-
-    // 2. Try with UTC as a fallback
-    try {
-        return new Intl.DateTimeFormat('en-US', { ...formatOptions, timeZone: 'UTC' }).format(date);
-    } catch (e) {
-        console.error('Error formatting time with UTC fallback:', e);
-    }
-    
-    // 3. Last resort: format with system's local timezone
-    try {
-        console.warn('Formatting with system local timezone as a last resort.');
-        return new Intl.DateTimeFormat('en-US', formatOptions).format(date);
-    } catch (e) {
-        console.error('Failed to format date even with system timezone fallback.', e);
-        return 'N/A';
-    }
+    console.error('Error formatting time:', e);
+    return 'N/A';
+  }
 }
-
 
 async function fetchFromWeatherbit(endpoint: string, params: Record<string, string>) {
     const apiKey = process.env.WEATHERBIT_API_KEY;
@@ -161,14 +142,14 @@ const getWeatherDataFlow = ai.defineFlow(
         sunset: formatTimeFromTimestamp(current.sunset_ts, current.timezone),
         currentTime: formatTimeFromTimestamp(current.ts, current.timezone),
         forecast: forecast.map((day: any) => ({
-            day: new Date(day.valid_date).toLocaleDateString('en-US', { weekday: 'short' }),
+            day: new Date(day.valid_date).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' }),
             condition: mapWeatherCondition(day.weather.code),
             tempHigh: Math.round(day.high_temp),
             tempLow: Math.round(day.low_temp),
             humidity: Math.round(day.rh),
         })),
         hourly: hourly.map((hour: any) => ({
-            time: new Date(hour.timestamp_local).toLocaleTimeString('en-US', { hour: 'numeric', hour12: true }).toLowerCase(),
+            time: formatTimeFromTimestamp(hour.ts, hourlyData.timezone),
             condition: mapWeatherCondition(hour.weather.code),
             temperature: Math.round(hour.temp),
             windSpeed: Math.round(hour.wind_spd * 3.6),
