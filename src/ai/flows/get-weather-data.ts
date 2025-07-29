@@ -72,23 +72,18 @@ function formatTimeFromTimestamp(timestamp: number, timezone: string): string {
     }).format(date);
   } catch (e) {
     if (e instanceof RangeError) {
-      console.warn(`Invalid timezone '${timezone}'. Formatting with UTC.`);
+      console.warn(`Invalid timezone '${timezone}'. Formatting with server's local time.`);
       try {
         const date = new Date(timestamp * 1000);
         return new Intl.DateTimeFormat('en-US', {
             hour: 'numeric',
             minute: '2-digit',
             hour12: true,
-            timeZone: 'UTC',
         }).format(date);
-      } catch (utcErr) {
-        console.error('Error formatting time with UTC fallback:', utcErr);
-        const date = new Date(timestamp * 1000);
-        return date.toLocaleTimeString('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true,
-        });
+      } catch (localErr) {
+        console.error('Error formatting time with local fallback:', localErr);
+        // Final fallback to a simple representation
+        return new Date(timestamp * 1000).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
       }
     }
     console.error('Error formatting time:', e);
@@ -152,16 +147,6 @@ const getWeatherDataFlow = ai.defineFlow(
     const history = historyData.data;
 
 
-    const sunriseSunsetResponse = await fetch(`https://api.sunrise-sunset.org/json?lat=${current.lat}&lng=${current.lon}&formatted=0`);
-    if (!sunriseSunsetResponse.ok) {
-        throw new Error(`Sunrise-Sunset API request failed with status ${sunriseSunsetResponse.status}`);
-    }
-    const sunriseSunsetData = await sunriseSunsetResponse.json();
-
-    if (sunriseSunsetData.status !== 'OK') {
-        throw new Error(`Sunrise-Sunset API returned status ${sunriseSunsetData.status}`);
-    }
-
     const timeApiResp = await fetch(`https://timeapi.io/api/TimeZone/coordinate?latitude=${current.lat}&longitude=${current.lon}`);
     if (!timeApiResp.ok) {
         throw new Error(`Time API request failed with status ${timeApiResp.status}`);
@@ -170,19 +155,20 @@ const getWeatherDataFlow = ai.defineFlow(
     const timezone = timeApiData.timeZone;
 
 
-    const sunriseDate = new Date(sunriseSunsetData.results.sunrise);
-    const sunsetDate = new Date(sunriseSunsetData.results.sunset);
+    const sunriseTime = formatTimeFromTimestamp(current.sunrise_ts, timezone);
+    const sunsetTime = formatTimeFromTimestamp(current.sunset_ts, timezone);
     
-    const sunriseTime = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: timezone }).format(sunriseDate);
-    const sunsetTime = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: timezone }).format(sunsetDate);
-
-    const transformDailyData = (day: any) => ({
-      day: new Date(day.valid_date).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' }),
-      condition: mapWeatherCondition(day.weather.code),
-      tempHigh: Math.round(day.max_temp ?? day.high_temp),
-      tempLow: Math.round(day.min_temp ?? day.low_temp),
-      humidity: Math.round(day.rh),
-    });
+    const transformDailyData = (day: any) => {
+        // Historical data sometimes lacks the nested `weather` object. Fallback to `weather_code`.
+        const weatherCode = day.weather?.code ?? day.weather_code;
+        return {
+          day: new Date(day.valid_date).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' }),
+          condition: mapWeatherCondition(weatherCode),
+          tempHigh: Math.round(day.max_temp ?? day.high_temp),
+          tempLow: Math.round(day.min_temp ?? day.low_temp),
+          humidity: Math.round(day.rh),
+        };
+    };
 
     const transformedData: GetWeatherDataOutput = {
         location: current.city_name,
