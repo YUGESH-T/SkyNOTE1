@@ -368,12 +368,12 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
       }
       case 'Thunderstorm': {
         const cloudMaterial = new THREE.MeshStandardMaterial({
-          color: 0x1a1a2a, // Dark stormy color
+          color: 0x666666,
           opacity: 0.9,
           transparent: true,
           roughness: 0.9,
           flatShading: true,
-          emissive: 0x111122,
+          emissive: 0x222233,
         });
 
         for (let i = 0; i < 8; i++) {
