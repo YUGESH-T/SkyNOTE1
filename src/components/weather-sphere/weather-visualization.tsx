@@ -210,15 +210,8 @@ export default function WeatherVisualization({ weatherCondition, sunrise, sunset
             // SUN
             const sunGeom = new THREE.SphereGeometry(2.5, 32, 32);
             const sunColor = daylightState === 'day' ? 0xffa500 : 0xff6633;
-            const sunEmissive = daylightState === 'day' ? 0xffa500 : 0xff4400;
 
-            const sunMat = new THREE.MeshStandardMaterial({
-              color: sunColor,
-              emissive: sunEmissive,
-              emissiveIntensity: 0.8,
-              metalness: 0.1,
-              roughness: 0.4
-            });
+            const sunMat = new THREE.MeshBasicMaterial({ color: sunColor });
             const sun = new THREE.Mesh(sunGeom, sunMat);
             sun.name = 'sun';
             sun.position.set(sunPosition.x, sunPosition.y, 0);
