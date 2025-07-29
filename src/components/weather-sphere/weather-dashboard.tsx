@@ -11,7 +11,7 @@ import { Loader2, Compass } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getWeatherData } from '@/ai/flows/get-weather-data';
 import { getWeatherNarrative } from '@/ai/flows/get-weather-narrative';
-import HourlyForecast from './hourly-forecast';
+import DailyTemperatureTrend from './daily-temperature-trend';
 import { cn } from '@/lib/utils';
 import type {GetWeatherDataInput} from '@/ai/flows/get-weather-data'
 import WeatherNarrative from './weather-narrative';
@@ -149,7 +149,7 @@ export default function WeatherDashboard() {
                                     onRefresh={() => handleFetchNarrative(currentWeather)}
                                 />
                                 <SunriseSunset sunrise={currentWeather.sunrise} sunset={currentWeather.sunset} />
-                                <HourlyForecast data={currentWeather} />
+                                <DailyTemperatureTrend data={currentWeather} />
                                 <WeatherForecast data={currentWeather} />
                             </div>
                         </div>

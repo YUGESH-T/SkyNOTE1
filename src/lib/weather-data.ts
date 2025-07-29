@@ -3,6 +3,13 @@ import { Sun, Cloud, CloudRain, Snowflake, Zap, Wind } from 'lucide-react';
 
 export type WeatherCondition = 'Sunny' | 'Cloudy' | 'Rainy' | 'Snowy' | 'Thunderstorm';
 
+export interface DailyData {
+  day: string;
+  condition: WeatherCondition;
+  tempHigh: number;
+  tempLow: number;
+  humidity: number;
+}
 export interface WeatherData {
   location: string;
   condition: WeatherCondition;
@@ -13,7 +20,8 @@ export interface WeatherData {
   sunrise: string;
   sunset: string;
   currentTime: string;
-  forecast: Forecast[];
+  forecast: DailyData[];
+  history: DailyData[];
   hourly: HourlyForecast[];
 }
 

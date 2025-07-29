@@ -11,6 +11,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import { subDays, format } from 'date-fns';
 
 const GetWeatherDataInputSchema = z.object({
   location: z.string().optional().describe('The city name to get weather data for (e.g., "London").'),
@@ -20,6 +21,14 @@ const GetWeatherDataInputSchema = z.object({
     message: "Either location or both lat and lon must be provided.",
 });
 export type GetWeatherDataInput = z.infer<typeof GetWeatherDataInputSchema>;
+
+const DailyDataSchema = z.object({
+    day: z.string().describe("Day of the week (e.g., 'Tue') or date."),
+    condition: z.enum(['Sunny', 'Cloudy', 'Rainy', 'Snowy', 'Thunderstorm']),
+    tempHigh: z.number().describe("Highest temperature for the day in Celsius."),
+    tempLow: z.number().describe("Lowest temperature for the day in Celsius."),
+    humidity: z.number().describe("Average humidity percentage for the day."),
+});
 
 const GetWeatherDataOutputSchema = z.object({
     location: z.string(),
@@ -31,13 +40,8 @@ const GetWeatherDataOutputSchema = z.object({
     sunrise: z.string().describe("Sunrise time (e.g., '6:30 AM')."),
     sunset: z.string().describe("Sunset time (e.g., '7:45 PM')."),
     currentTime: z.string().describe("Current local time (e.g., '2:30 PM')."),
-    forecast: z.array(z.object({
-        day: z.string().describe("Day of the week (e.g., 'Tue')."),
-        condition: z.enum(['Sunny', 'Cloudy', 'Rainy', 'Snowy', 'Thunderstorm']),
-        tempHigh: z.number().describe("Highest temperature for the day in Celsius."),
-        tempLow: z.number().describe("Lowest temperature for the day in Celsius."),
-        humidity: z.number().describe("Average humidity percentage for the day."),
-    })).length(7).describe("A 7-day weather forecast."),
+    forecast: z.array(DailyDataSchema).length(7).describe("A 7-day weather forecast."),
+    history: z.array(DailyDataSchema).describe("A 5-day historical weather data."),
     hourly: z.array(z.object({
         time: z.string().describe("The hour for the forecast (e.g., '3pm')."),
         condition: z.enum(['Sunny', 'Cloudy', 'Rainy', 'Snowy', 'Thunderstorm']),
@@ -68,13 +72,24 @@ function formatTimeFromTimestamp(timestamp: number, timezone: string): string {
     }).format(date);
   } catch (e) {
     if (e instanceof RangeError) {
-      console.warn(`Invalid timezone '${timezone}'. Formatting with system default.`);
-      const date = new Date(timestamp * 1000);
-      return date.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
-      });
+      console.warn(`Invalid timezone '${timezone}'. Formatting with UTC.`);
+      try {
+        const date = new Date(timestamp * 1000);
+        return new Intl.DateTimeFormat('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+            timeZone: 'UTC',
+        }).format(date);
+      } catch (utcErr) {
+        console.error('Error formatting time with UTC fallback:', utcErr);
+        const date = new Date(timestamp * 1000);
+        return date.toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+        });
+      }
     }
     console.error('Error formatting time:', e);
     return 'N/A';
@@ -116,10 +131,15 @@ const getWeatherDataFlow = ai.defineFlow(
         queryParams.lon = lon.toString();
     }
 
-    const [currentData, forecastData, hourlyData] = await Promise.all([
+    const today = new Date();
+    const endDate = format(today, 'yyyy-MM-dd');
+    const startDate = format(subDays(today, 5), 'yyyy-MM-dd');
+
+    const [currentData, forecastData, hourlyData, historyData] = await Promise.all([
         fetchFromWeatherbit('current', queryParams),
         fetchFromWeatherbit('forecast/daily', { ...queryParams, days: '7' }),
-        fetchFromWeatherbit('forecast/hourly', { ...queryParams, hours: '24' })
+        fetchFromWeatherbit('forecast/hourly', { ...queryParams, hours: '24' }),
+        fetchFromWeatherbit('history/daily', { ...queryParams, start_date: startDate, end_date: endDate }),
     ]);
 
     if (!currentData.data || currentData.data.length === 0) {
@@ -129,6 +149,8 @@ const getWeatherDataFlow = ai.defineFlow(
     const current = currentData.data[0];
     const forecast = forecastData.data;
     const hourly = hourlyData.data;
+    const history = historyData.data;
+
 
     const sunriseSunsetResponse = await fetch(`https://api.sunrise-sunset.org/json?lat=${current.lat}&lng=${current.lon}&formatted=0`);
     if (!sunriseSunsetResponse.ok) {
@@ -154,6 +176,13 @@ const getWeatherDataFlow = ai.defineFlow(
     const sunriseTime = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: timezone }).format(sunriseDate);
     const sunsetTime = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: timezone }).format(sunsetDate);
 
+    const transformDailyData = (day: any) => ({
+      day: new Date(day.valid_date).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' }),
+      condition: mapWeatherCondition(day.weather.code),
+      tempHigh: Math.round(day.max_temp ?? day.high_temp),
+      tempLow: Math.round(day.min_temp ?? day.low_temp),
+      humidity: Math.round(day.rh),
+    });
 
     const transformedData: GetWeatherDataOutput = {
         location: current.city_name,
@@ -165,13 +194,8 @@ const getWeatherDataFlow = ai.defineFlow(
         sunrise: sunriseTime,
         sunset: sunsetTime,
         currentTime: formatTimeFromTimestamp(current.ts, timezone),
-        forecast: forecast.map((day: any) => ({
-            day: new Date(day.valid_date).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' }),
-            condition: mapWeatherCondition(day.weather.code),
-            tempHigh: Math.round(day.high_temp),
-            tempLow: Math.round(day.low_temp),
-            humidity: Math.round(day.rh),
-        })),
+        forecast: forecast.map(transformDailyData),
+        history: history.map(transformDailyData),
         hourly: hourly.map((hour: any) => ({
             time: formatTimeFromTimestamp(hour.ts, timezone),
             condition: mapWeatherCondition(hour.weather.code),
