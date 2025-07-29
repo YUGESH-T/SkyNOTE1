@@ -28,7 +28,6 @@ const weatherColorClasses = {
 
 function getIsNight(currentTime: string, sunrise: string, sunset: string): boolean {
   if (!currentTime || !sunrise || !sunset) return false;
-  if (parseInt(currentTime.split(':')[0]) >= 19) return true;
   const now = parseInt(currentTime.replace(':', ''), 10);
   const rise = parseInt(sunrise.replace(':', ''), 10);
   const set = parseInt(sunset.replace(':', ''), 10);
@@ -140,19 +139,24 @@ export default function WeatherDashboard() {
   const isLoading = isSearching || (geolocationStatus === 'pending' && !currentWeather);
 
   return (
-    <div className={cn("relative w-full max-w-7xl mx-auto sm:rounded-2xl shadow-2xl bg-gradient-to-br overflow-hidden min-h-screen sm:min-h-0 sm:h-[calc(100vh-2rem)]", backgroundClass, "transition-all duration-1000")}>
-        <div className="absolute inset-0 z-0">
-         {currentWeather && <WeatherVisualization 
-              weatherCondition={currentWeather.condition} 
-              sunrise={currentWeather.sunrise}
-              sunset={currentWeather.sunset}
-              currentTime={currentWeather.currentTime}
-            />}
-        </div>
-        <div className={cn("relative z-10 grid grid-cols-1 md:grid-cols-2 h-full", isLoading && "pointer-events-none")}>
-            <div className="md:col-span-1" />
+    <div className={cn(
+        "w-full max-w-7xl mx-auto sm:rounded-2xl shadow-2xl bg-gradient-to-br min-h-screen sm:min-h-0 sm:h-auto md:h-[calc(100vh-2rem)]", 
+        backgroundClass, 
+        "transition-all duration-1000"
+    )}>
+        <div className={cn("grid grid-cols-1 md:grid-cols-5 md:h-full", isLoading && "pointer-events-none")}>
+            <div className="md:col-span-2 relative h-64 md:h-full">
+                <div className="absolute inset-0 z-0">
+                    {currentWeather && <WeatherVisualization 
+                        weatherCondition={currentWeather.condition} 
+                        sunrise={currentWeather.sunrise}
+                        sunset={currentWeather.sunset}
+                        currentTime={currentWeather.currentTime}
+                    />}
+                </div>
+            </div>
             <div className={cn(
-                "md:col-span-1 flex flex-col gap-4 p-4 transition-all duration-500 ease-in-out md:h-full md:overflow-y-auto no-scrollbar",
+                "md:col-span-3 flex flex-col gap-4 p-4 md:p-6 transition-all duration-500 ease-in-out md:h-full md:overflow-y-auto no-scrollbar",
                 contentClass
             )}>
               <LocationSelector onLocationSearch={(location) => handleLocationSearch({ location })} isLoading={isSearching} initialLocation={currentWeather?.location} />
