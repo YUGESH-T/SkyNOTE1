@@ -43,7 +43,7 @@ const GetWeatherDataOutputSchema = z.object({
         temperature: z.number().describe("Temperature for the hour in Celsius."),
         windSpeed: z.number().describe("Wind speed in km/h for the hour."),
         humidity: z.number().describe("Humidity percentage for the hour."),
-    })).min(1).describe("A 24-hour weather forecast."),
+    })).length(12).describe("A 12-hour weather forecast."),
 });
 export type GetWeatherDataOutput = z.infer<typeof GetWeatherDataOutputSchema>;
 
@@ -103,7 +103,7 @@ const getWeatherDataFlow = ai.defineFlow(
     const [currentData, forecastData, hourlyData] = await Promise.all([
         fetchFromWeatherbit('current', queryParams),
         fetchFromWeatherbit('forecast/daily', { ...queryParams, days: '7' }),
-        fetchFromWeatherbit('forecast/hourly', { ...queryParams, hours: '24' })
+        fetchFromWeatherbit('forecast/hourly', { ...queryParams, hours: '12' })
     ]);
 
     if (!currentData.data || currentData.data.length === 0) {
@@ -137,7 +137,7 @@ const getWeatherDataFlow = ai.defineFlow(
             temperature: Math.round(hour.temp),
             windSpeed: Math.round(hour.wind_spd * 3.6),
             humidity: Math.round(hour.rh),
-        })).slice(0, 24),
+        })).slice(0, 12),
     };
     
     return transformedData;
