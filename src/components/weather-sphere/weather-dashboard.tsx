@@ -133,7 +133,7 @@ export default function WeatherDashboard() {
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-background">
-        <div className="absolute inset-0 z-0 bg-gradient-to-br from-[#1E293B] to-[#0F172A] transition-all duration-1000">
+        <div className="absolute inset-0 z-0 bg-gradient-to-br from-[#111827] to-[#3730a3]">
             {currentWeather && <WeatherVisualization 
                 weatherCondition={currentWeather.condition} 
                 sunrise={currentWeather.sunrise}
@@ -143,23 +143,31 @@ export default function WeatherDashboard() {
         </div>
 
         <div className={cn("relative z-10 h-screen w-full overflow-y-auto no-scrollbar", isLoading && "pointer-events-none")}>
-            <div className="w-full max-w-md md:max-w-md float-right">
-                 <div className="flex flex-col gap-4 p-4 md:p-6 min-h-screen">
-                  <LocationSelector onLocationSearch={(location) => handleLocationSearch({ location })} isLoading={isSearching} initialLocation={currentWeather?.location} />
+             <div className="mx-auto max-w-full p-4 md:p-6 lg:max-w-7xl">
+                <div className="w-full lg:w-[calc(100%-420px)] lg:max-w-[800px] float-right">
                     {currentWeather ? (
-                        <>
-                        <CurrentWeather data={currentWeather} />
-                        <WeatherNarrative 
-                          narrative={weatherNarrative} 
-                          isLoading={isGeneratingNarrative}
-                          onRefresh={() => handleFetchNarrative(currentWeather)}
-                        />
-                        <InteractiveHourlyForecast data={currentWeather} />
-                        <HourlyForecast data={currentWeather} />
-                        <WeatherForecast data={currentWeather} />
-                        </>
+                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                            <div className="lg:col-span-2">
+                                <LocationSelector onLocationSearch={(location) => handleLocationSearch({ location })} isLoading={isSearching} initialLocation={currentWeather?.location} />
+                            </div>
+                           
+                            <div className="flex flex-col gap-4 md:gap-6">
+                                <CurrentWeather data={currentWeather} />
+                                <InteractiveHourlyForecast data={currentWeather} />
+                            </div>
+
+                            <div className="flex flex-col gap-4 md:gap-6">
+                                <WeatherNarrative 
+                                    narrative={weatherNarrative} 
+                                    isLoading={isGeneratingNarrative}
+                                    onRefresh={() => handleFetchNarrative(currentWeather)}
+                                />
+                                <HourlyForecast data={currentWeather} />
+                                <WeatherForecast data={currentWeather} />
+                            </div>
+                        </div>
                     ): (
-                        <div className="flex-grow flex flex-col items-center justify-center bg-card/80 backdrop-blur-xl border border-white/10 shadow-lg rounded-lg p-6 text-center">
+                        <div className="flex-grow flex flex-col items-center justify-center bg-card/80 backdrop-blur-xl border border-white/10 shadow-lg rounded-lg p-6 text-center min-h-[50vh] mt-20">
                             {isLoading ? (
                                 <>
                                     <Loader2 className="h-12 w-12 animate-spin text-white mb-4" />
@@ -167,7 +175,8 @@ export default function WeatherDashboard() {
                                 </>
                             ) : showWelcomeMessage ? (
                                 <>
-                                    <Compass className="h-16 w-16 text-white/90 mb-4" />
+                                    <LocationSelector onLocationSearch={(location) => handleLocationSearch({ location })} isLoading={isSearching} />
+                                    <Compass className="h-16 w-16 text-white/90 my-4" />
                                     <h2 className="text-2xl font-bold mb-2 text-white">Welcome to SKYNOTE</h2>
                                     <p className="text-white/70 text-base">Enter a city to get the latest weather forecast and see a beautiful 3D visualization.</p>
                                 </>
