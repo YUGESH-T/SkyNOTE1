@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { WeatherData } from "@/lib/weather-data";
 import WeatherIcon from "./weather-icon";
 import { Droplets, Wind, RefreshCw } from "lucide-react";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { cn } from "@/lib/utils";
 
 interface InteractiveHourlyForecastProps {
@@ -38,7 +38,7 @@ export default function InteractiveHourlyForecast({ data }: InteractiveHourlyFor
                         <p className="text-lg sm:text-xl font-bold">{item.temperature}°</p>
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                             <Wind className="w-3 h-3" />
-                            <span>{item.windSpeed}</span>
+                            <span>{item.windSpeed}kmh</span>
                         </div>
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                             <Droplets className="w-3 h-3" />
@@ -48,8 +48,6 @@ export default function InteractiveHourlyForecast({ data }: InteractiveHourlyFor
                 </CarouselItem>
             ))}
             </CarouselContent>
-            <CarouselPrevious className="hidden md:flex" />
-            <CarouselNext className="hidden md:flex" />
         </Carousel>
       </CardContent>
     </Card>
