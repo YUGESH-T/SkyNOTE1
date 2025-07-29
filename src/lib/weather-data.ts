@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import { Sun, Cloud, CloudRain, Snowflake, Zap } from 'lucide-react';
+import { Sun, Cloud, CloudRain, Snowflake, Zap, Wind } from 'lucide-react';
 
 export type WeatherCondition = 'Sunny' | 'Cloudy' | 'Rainy' | 'Snowy' | 'Thunderstorm';
 
@@ -30,6 +30,7 @@ export interface HourlyForecast {
   condition: WeatherCondition;
   temperature: number;
   windSpeed: number;
+  humidity: number;
 }
 
 export const weatherIcons: Record<WeatherCondition, LucideIcon> = {
