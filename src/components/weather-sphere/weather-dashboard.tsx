@@ -18,12 +18,12 @@ import WeatherNarrative from './weather-narrative';
 import InteractiveHourlyForecast from './interactive-hourly-forecast';
 
 const weatherColorClasses = {
-  Sunny: "from-sky-500/80 to-blue-700/80",
-  Cloudy: "from-slate-500/80 to-gray-700/80",
+  Sunny: "from-sky-500 to-blue-700",
+  Cloudy: "from-slate-500 to-gray-700",
   Rainy: "from-indigo-600/80 to-slate-900/80",
-  Snowy: "from-blue-300/80 to-cyan-500/80",
-  Thunderstorm: "from-gray-800/80 via-gray-900/80 to-black/80",
-  Night: "from-gray-900/80 to-slate-900/80"
+  Snowy: "from-blue-300 to-cyan-500",
+  Thunderstorm: "from-gray-800 via-gray-900 to-black",
+  Night: "from-gray-900 to-slate-900"
 };
 
 function getIsNight(currentTime: string, sunrise: string, sunset: string): boolean {
@@ -119,26 +119,21 @@ export default function WeatherDashboard() {
 
   if (!isMounted) {
     return (
-      <div className="w-full h-screen flex items-center justify-center bg-blue-950">
+      <div className="w-full h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-16 w-16 animate-spin text-white" />
       </div>
     );
   }
 
   const isNight = currentWeather ? getIsNight(currentWeather.currentTime, currentWeather.sunrise, currentWeather.sunset) : false;
-  const backgroundClass = currentWeather ? (isNight ? weatherColorClasses.Night : weatherColorClasses[currentWeather.condition] || "from-gray-500/80 to-gray-700/80") : "from-gray-900/80 to-slate-900/80";
+  const backgroundClass = currentWeather ? (isNight ? weatherColorClasses.Night : weatherColorClasses[currentWeather.condition] || "from-gray-500 to-gray-700") : "from-gray-900 to-slate-900";
   
   const showWelcomeMessage = geolocationStatus === 'error' && !currentWeather;
   const isLoading = isSearching || (geolocationStatus === 'pending' && !currentWeather);
 
   return (
-    <div className={cn(
-        "relative w-full h-screen overflow-hidden", 
-        "bg-gradient-to-br",
-        backgroundClass, 
-        "transition-all duration-1000"
-    )}>
-        <div className="absolute inset-0 z-0">
+    <div className="relative w-full h-screen overflow-hidden bg-background">
+        <div className="absolute inset-0 z-0 bg-gradient-to-br from-[#1E293B] to-[#0F172A] transition-all duration-1000">
             {currentWeather && <WeatherVisualization 
                 weatherCondition={currentWeather.condition} 
                 sunrise={currentWeather.sunrise}
@@ -148,7 +143,7 @@ export default function WeatherDashboard() {
         </div>
 
         <div className={cn("relative z-10 h-screen w-full overflow-y-auto no-scrollbar", isLoading && "pointer-events-none")}>
-            <div className="w-full max-w-lg md:max-w-lg float-right">
+            <div className="w-full max-w-md md:max-w-md float-right">
                  <div className="flex flex-col gap-4 p-4 md:p-6 min-h-screen">
                   <LocationSelector onLocationSearch={(location) => handleLocationSearch({ location })} isLoading={isSearching} initialLocation={currentWeather?.location} />
                     {currentWeather ? (
@@ -164,7 +159,7 @@ export default function WeatherDashboard() {
                         <WeatherForecast data={currentWeather} />
                         </>
                     ): (
-                        <div className="flex-grow flex flex-col items-center justify-center bg-black/20 backdrop-blur-xl border border-white/10 shadow-lg rounded-lg p-6 text-center">
+                        <div className="flex-grow flex flex-col items-center justify-center bg-card/80 backdrop-blur-xl border border-white/10 shadow-lg rounded-lg p-6 text-center">
                             {isLoading ? (
                                 <>
                                     <Loader2 className="h-12 w-12 animate-spin text-white mb-4" />

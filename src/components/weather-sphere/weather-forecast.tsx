@@ -10,7 +10,7 @@ interface WeatherForecastProps {
 
 export default function WeatherForecast({ data }: WeatherForecastProps) {
   return (
-    <Card className="bg-black/20 backdrop-blur-xl border-white/10 shadow-lg transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-1">
+    <Card className="bg-card/80 backdrop-blur-xl border-white/10 shadow-lg transition-all duration-300 ease-in-out">
       <CardHeader>
         <CardTitle className="text-lg md:text-xl">7-Day Forecast</CardTitle>
       </CardHeader>

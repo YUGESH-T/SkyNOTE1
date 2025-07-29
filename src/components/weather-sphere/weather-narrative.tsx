@@ -11,7 +11,7 @@ interface WeatherNarrativeProps {
 
 export default function WeatherNarrative({ narrative, isLoading, onRefresh }: WeatherNarrativeProps) {
   return (
-    <Card className="bg-black/20 backdrop-blur-xl border-white/10 shadow-lg transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-1">
+    <Card className="bg-card/80 backdrop-blur-xl border-white/10 shadow-lg transition-all duration-300 ease-in-out">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-white" />
@@ -22,7 +22,7 @@ export default function WeatherNarrative({ narrative, isLoading, onRefresh }: We
             size="icon"
             onClick={onRefresh}
             disabled={isLoading}
-            className="w-8 h-8 rounded-full"
+            className="w-8 h-8 rounded-full hover:bg-white/10"
             aria-label="Refresh AI summary"
         >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />

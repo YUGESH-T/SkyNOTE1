@@ -10,7 +10,7 @@ interface InteractiveHourlyForecastProps {
 
 export default function InteractiveHourlyForecast({ data }: InteractiveHourlyForecastProps) {
   return (
-    <Card className="bg-black/20 backdrop-blur-xl border-white/10 shadow-lg transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-1">
+    <Card className="bg-card/80 backdrop-blur-xl border-white/10 shadow-lg transition-all duration-300 ease-in-out">
       <CardHeader>
         <div className="flex items-center justify-between">
             <CardTitle className="text-lg md:text-xl">Hourly Forecast</CardTitle>
