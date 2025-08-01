@@ -131,9 +131,9 @@ const getWeatherDataFlow = ai.defineFlow(
     const hourly = forecastData.list.slice(0, 8).map((h: any) => ({
         time: formatTimeFromTimestamp(h.dt, timezoneOffset, { hour: 'numeric', hour12: true }),
         condition: mapWeatherCondition(h.weather[0].main),
-        temperature: Math.round(h.temp),
-        windSpeed: Math.round(h.wind_speed * 3.6),
-        humidity: Math.round(h.humidity),
+        temperature: Math.round(h.main.temp),
+        windSpeed: Math.round(h.wind.speed * 3.6),
+        humidity: Math.round(h.main.humidity),
     }));
 
     // Process daily forecast
