@@ -94,77 +94,87 @@ const getWeatherDataFlow = ai.defineFlow(
   },
   async ({ location, lat, lon }) => {
     const apiKey = "888c6f6d1a152bfd3be977d295ab111f";
-    let latitude = lat;
-    let longitude = lon;
-    let locationName = location;
-
+    
+    let weatherUrl: string;
     if (location) {
-      const geoUrl = `https://api.openweathermap.org/geo/1.0/direct?q=${location}&limit=1&appid=${apiKey}`;
-      const geoResponse = await fetch(geoUrl);
-      if (!geoResponse.ok) {
-          const errorBody = await geoResponse.text();
-          throw new Error(`OpenWeather Geocoding API request failed with status ${geoResponse.status}: ${errorBody}`);
-      }
-      const geoData = await geoResponse.json();
-      if (!geoData || geoData.length === 0) {
-        throw new Error(`Could not find location: ${location}`);
-      }
-      latitude = geoData[0].lat;
-      longitude = geoData[0].lon;
-      locationName = geoData[0].name;
-    }
-
-    if (latitude === undefined || longitude === undefined) {
-      throw new Error("Could not determine coordinates for the location.");
+        weatherUrl = `https://api.openweathermap.org/data/2.5/weather?q=${location}&appid=${apiKey}&units=metric`;
+    } else if (lat !== undefined && lon !== undefined) {
+        weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
+    } else {
+        throw new Error("Either location or both lat and lon must be provided.");
     }
     
-    const oneCallUrl = `https://api.openweathermap.org/data/3.0/onecall?lat=${latitude}&lon=${longitude}&exclude=minutely,alerts&appid=${apiKey}&units=metric`;
-    const oneCallResponse = await fetch(oneCallUrl);
-    if (!oneCallResponse.ok) {
-        const errorBody = await oneCallResponse.text();
-        throw new Error(`OpenWeather One Call API request failed with status ${oneCallResponse.status}: ${errorBody}`);
+    const weatherResponse = await fetch(weatherUrl);
+    if (!weatherResponse.ok) {
+        const errorBody = await weatherResponse.text();
+        throw new Error(`OpenWeather API request failed with status ${weatherResponse.status}: ${errorBody}`);
     }
-    const data = await oneCallResponse.json();
-    
-    const timezoneOffset = data.timezone_offset;
+    const weatherData = await weatherResponse.json();
 
-    const hourly = data.hourly.slice(0, 24).map((h: any) => ({
-      time: formatTimeFromTimestamp(h.dt, timezoneOffset, { hour: 'numeric', minute: '2-digit', hour12: true }),
-      condition: mapWeatherCondition(h.weather[0].main),
-      temperature: Math.round(h.temp),
-      windSpeed: Math.round(h.wind_speed * 3.6),
-      humidity: Math.round(h.humidity),
-    }));
+    const { coord, name: locationName } = weatherData;
+    const latitude = lat ?? coord.lat;
+    const longitude = lon ?? coord.lon;
 
-    const forecast = data.daily.slice(0, 7).map((d: any) => ({
-      day: format(new Date(d.dt * 1000), 'EEE'),
-      condition: mapWeatherCondition(d.weather[0].main),
-      tempHigh: Math.round(d.temp.max),
-      tempLow: Math.round(d.temp.min),
-      humidity: Math.round(d.humidity),
-    }));
+    const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${latitude}&lon=${longitude}&appid=${apiKey}&units=metric`;
+    const forecastResponse = await fetch(forecastUrl);
+     if (!forecastResponse.ok) {
+        const errorBody = await forecastResponse.text();
+        throw new Error(`OpenWeather Forecast API request failed with status ${forecastResponse.status}: ${errorBody}`);
+    }
+    const forecastData = await forecastResponse.json();
 
-    if (!locationName) {
-        const reverseGeoUrl = `https://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=1&appid=${apiKey}`;
-        const reverseGeoResponse = await fetch(reverseGeoUrl);
-        if (reverseGeoResponse.ok) {
-            const reverseGeoData = await reverseGeoResponse.json();
-            if (reverseGeoData && reverseGeoData.length > 0) {
-                locationName = reverseGeoData[0].name;
-            }
+    const timezoneOffset = forecastData.city.timezone;
+    const now = new Date();
+    const twentyFourHoursFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+    const hourly = forecastData.list
+        .filter((h: any) => {
+             const forecastDate = new Date(h.dt * 1000);
+             return forecastDate <= twentyFourHoursFromNow;
+        })
+        .slice(0, 8) // Limit to 8 entries (24 hours in 3-hour intervals)
+        .map((h: any) => ({
+            time: formatTimeFromTimestamp(h.dt, timezoneOffset, { hour: 'numeric', hour12: true }),
+            condition: mapWeatherCondition(h.weather[0].main),
+            temperature: Math.round(h.main.temp),
+            windSpeed: Math.round(h.wind.speed * 3.6),
+            humidity: Math.round(h.main.humidity),
+        }));
+
+    const dailyForecasts: { [key: string]: DailyData } = {};
+    forecastData.list.forEach((item: any) => {
+        const day = format(new Date(item.dt * 1000), 'EEE');
+        if (!dailyForecasts[day]) {
+            dailyForecasts[day] = {
+                day,
+                condition: mapWeatherCondition(item.weather[0].main),
+                tempHigh: -Infinity,
+                tempLow: Infinity,
+                humidity: 0,
+            };
         }
-    }
-     
+        dailyForecasts[day].tempHigh = Math.max(dailyForecasts[day].tempHigh, item.main.temp_max);
+        dailyForecasts[day].tempLow = Math.min(dailyForecasts[day].tempLow, item.main.temp_min);
+        dailyForecasts[day].humidity = (dailyForecasts[day].humidity + item.main.humidity) / 2;
+    });
+
+    const forecast = Object.values(dailyForecasts).slice(0, 7).map(day => ({
+        ...day,
+        tempHigh: Math.round(day.tempHigh),
+        tempLow: Math.round(day.tempLow),
+        humidity: Math.round(day.humidity),
+    }));
+
     const transformedData: GetWeatherDataOutput = {
         location: locationName || 'Current Location',
-        condition: mapWeatherCondition(data.current.weather[0].main),
-        temperature: Math.round(data.current.temp),
-        feelsLike: Math.round(data.current.feels_like),
-        humidity: Math.round(data.current.humidity),
-        windSpeed: Math.round(data.current.wind_speed * 3.6),
-        sunrise: formatTimeFromTimestamp(data.current.sunrise, timezoneOffset),
-        sunset: formatTimeFromTimestamp(data.current.sunset, timezoneOffset),
-        currentTime: formatTimeFromTimestamp(data.current.dt, timezoneOffset),
+        condition: mapWeatherCondition(weatherData.weather[0].main),
+        temperature: Math.round(weatherData.main.temp),
+        feelsLike: Math.round(weatherData.main.feels_like),
+        humidity: Math.round(weatherData.main.humidity),
+        windSpeed: Math.round(weatherData.wind.speed * 3.6),
+        sunrise: formatTimeFromTimestamp(weatherData.sys.sunrise, timezoneOffset),
+        sunset: formatTimeFromTimestamp(weatherData.sys.sunset, timezoneOffset),
+        currentTime: formatTimeFromTimestamp(weatherData.dt, timezoneOffset),
         forecast: forecast,
         hourly: hourly,
     };
