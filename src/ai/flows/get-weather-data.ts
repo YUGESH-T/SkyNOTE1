@@ -95,82 +95,66 @@ const getWeatherDataFlow = ai.defineFlow(
   async ({ location, lat, lon }) => {
     const apiKey = "888c6f6d1a152bfd3be977d295ab111f";
     
-    let searchParams = new URLSearchParams();
+    let cityLat = lat;
+    let cityLon = lon;
+    let cityName = location;
+
     if (location) {
-        searchParams.append('q', location);
-    } else if (lat !== undefined && lon !== undefined) {
-        searchParams.append('lat', lat.toString());
-        searchParams.append('lon', lon.toString());
-    } else {
-        throw new Error("Either location or lat/lon must be provided.");
+        const geocodeUrl = `https://api.openweathermap.org/geo/1.0/direct?q=${location}&limit=1&appid=${apiKey}`;
+        const geocodeResponse = await fetch(geocodeUrl);
+        if (!geocodeResponse.ok) {
+             const errorBody = await geocodeResponse.text();
+            throw new Error(`OpenWeather Geocoding API request failed with status ${geocodeResponse.status}: ${errorBody}`);
+        }
+        const geocodeData = await geocodeResponse.json();
+        if (geocodeData.length === 0) {
+            throw new Error(`Could not find location: ${location}`);
+        }
+        cityLat = geocodeData[0].lat;
+        cityLon = geocodeData[0].lon;
+        cityName = geocodeData[0].name;
     }
-    searchParams.append('appid', apiKey);
-    searchParams.append('units', 'metric');
 
-    // Fetch current weather
-    const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?${searchParams.toString()}`;
-    const weatherResponse = await fetch(weatherUrl);
-    if (!weatherResponse.ok) {
-        const errorBody = await weatherResponse.text();
-        throw new Error(`OpenWeather API request failed for current weather with status ${weatherResponse.status}: ${errorBody}`);
+    if (cityLat === undefined || cityLon === undefined) {
+        throw new Error("Could not determine coordinates for the location.");
     }
-    const currentData = await weatherResponse.json();
-    
-    // Fetch forecast data
-    const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?${searchParams.toString()}`;
-    const forecastResponse = await fetch(forecastUrl);
-    if (!forecastResponse.ok) {
-        const errorBody = await forecastResponse.text();
-        throw new Error(`OpenWeather API request failed for forecast with status ${forecastResponse.status}: ${errorBody}`);
+
+    const oneCallUrl = `https://api.openweathermap.org/data/2.5/onecall?lat=${cityLat}&lon=${cityLon}&exclude=minutely,alerts&appid=${apiKey}&units=metric`;
+    const oneCallResponse = await fetch(oneCallUrl);
+    if (!oneCallResponse.ok) {
+        const errorBody = await oneCallResponse.text();
+        throw new Error(`OpenWeather One Call API request failed with status ${oneCallResponse.status}: ${errorBody}`);
     }
-    const forecastData = await forecastResponse.json();
+    const data = await oneCallResponse.json();
 
-    const timezoneOffset = currentData.timezone;
+    const timezoneOffset = data.timezone_offset;
 
-    // Process hourly forecast (next 24 hours from forecast data)
-    const hourly = forecastData.list.slice(0, 8).map((h: any) => ({
+    const hourly = data.hourly.slice(0, 24).map((h: any) => ({
         time: formatTimeFromTimestamp(h.dt, timezoneOffset, { hour: 'numeric', hour12: true }),
         condition: mapWeatherCondition(h.weather[0].main),
-        temperature: Math.round(h.main.temp),
-        windSpeed: Math.round(h.wind.speed * 3.6),
-        humidity: Math.round(h.main.humidity),
+        temperature: Math.round(h.temp),
+        windSpeed: Math.round(h.wind_speed * 3.6),
+        humidity: Math.round(h.humidity),
     }));
 
-    // Process daily forecast
-    const dailyForecasts: { [key: string]: DailyData } = {};
-    forecastData.list.forEach((item: any) => {
-        const day = format(new Date(item.dt * 1000), 'EEE');
-        if (!dailyForecasts[day]) {
-            dailyForecasts[day] = {
-                day: day,
-                condition: mapWeatherCondition(item.weather[0].main),
-                tempHigh: -Infinity,
-                tempLow: Infinity,
-                humidity: 0,
-            };
-        }
-        dailyForecasts[day].tempHigh = Math.max(dailyForecasts[day].tempHigh, item.main.temp_max);
-        dailyForecasts[day].tempLow = Math.min(dailyForecasts[day].tempLow, item.main.temp_min);
-        dailyForecasts[day].humidity = (dailyForecasts[day].humidity + item.main.humidity) / 2; // Simple average
-    });
-
-    const forecast = Object.values(dailyForecasts).slice(0, 7).map(d => ({
-        ...d,
-        tempHigh: Math.round(d.tempHigh),
-        tempLow: Math.round(d.tempLow),
-        humidity: Math.round(d.humidity)
+    const forecast = data.daily.slice(0, 7).map((d: any) => ({
+        day: format(new Date(d.dt * 1000), 'EEE'),
+        condition: mapWeatherCondition(d.weather[0].main),
+        tempHigh: Math.round(d.temp.max),
+        tempLow: Math.round(d.temp.min),
+        humidity: Math.round(d.humidity),
     }));
      
     const transformedData: GetWeatherDataOutput = {
-        location: currentData.name,
-        condition: mapWeatherCondition(currentData.weather[0].main),
-        temperature: Math.round(currentData.main.temp),
-        feelsLike: Math.round(currentData.main.feels_like),
-        humidity: Math.round(currentData.main.humidity),
-        windSpeed: Math.round(currentData.wind.speed * 3.6),
-        sunrise: formatTimeFromTimestamp(currentData.sys.sunrise, timezoneOffset),
-        sunset: formatTimeFromTimestamp(currentData.sys.sunset, timezoneOffset),
-        currentTime: formatTimeFromTimestamp(currentData.dt, timezoneOffset),
+        location: cityName || `${cityLat}, ${cityLon}`,
+        condition: mapWeatherCondition(data.current.weather[0].main),
+        temperature: Math.round(data.current.temp),
+        feelsLike: Math.round(data.current.feels_like),
+        humidity: Math.round(data.current.humidity),
+        windSpeed: Math.round(data.current.wind_speed * 3.6),
+        sunrise: formatTimeFromTimestamp(data.current.sunrise, timezoneOffset),
+        sunset: formatTimeFromTimestamp(data.current.sunset, timezoneOffset),
+        currentTime: formatTimeFromTimestamp(data.current.dt, timezoneOffset),
         forecast: forecast,
         hourly: hourly,
     };
