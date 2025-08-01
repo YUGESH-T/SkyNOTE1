@@ -101,6 +101,16 @@ async function fetchFromOpenWeather(endpoint: string, params: Record<string, str
     return response.json();
 }
 
+
+async function getCoordinatesForLocation(location: string): Promise<{ lat: number; lon: number; name: string }> {
+    const geocodingData = await fetchFromOpenWeather('geo/1.0/direct', { q: location, limit: '1' });
+    if (!geocodingData || geocodingData.length === 0) {
+        throw new Error(`Could not find coordinates for location: ${location}`);
+    }
+    return { lat: geocodingData[0].lat, lon: geocodingData[0].lon, name: geocodingData[0].name };
+}
+
+
 const getWeatherDataFlow = ai.defineFlow(
   {
     name: 'getWeatherDataFlow',
@@ -109,87 +119,59 @@ const getWeatherDataFlow = ai.defineFlow(
   },
   async ({ location, lat, lon }) => {
     
-    let queryParams: { q?: string; lat?: string; lon?: string } = {};
+    let locationName = location;
+    let effectiveLat = lat;
+    let effectiveLon = lon;
+
     if (location) {
-        queryParams.q = location;
-    } else if (lat !== undefined && lon !== undefined) {
-        queryParams.lat = lat.toString();
-        queryParams.lon = lon.toString();
-    } else {
-        throw new Error("Either location or lat/lon must be provided.");
-    }
-    
-    const currentWeatherData = await fetchFromOpenWeather('data/2.5/weather', queryParams as Record<string, string>);
-    
-    const forecastParams = { ...queryParams };
-    if (!forecastParams.q) {
-        forecastParams.lat = currentWeatherData.coord.lat.toString();
-        forecastParams.lon = currentWeatherData.coord.lon.toString();
+        const coords = await getCoordinatesForLocation(location);
+        effectiveLat = coords.lat;
+        effectiveLon = coords.lon;
+        locationName = coords.name;
     }
 
-    const forecastData = await fetchFromOpenWeather('data/2.5/forecast', forecastParams as Record<string, string>);
-
-    const timezoneOffset = currentWeatherData.timezone;
-
-    const today = new Date();
-    today.setSeconds(today.getSeconds() + timezoneOffset);
-    const todayDate = today.getUTCDate();
-
-    const hourly = forecastData.list
-        .map((h: any) => {
-            const itemDate = new Date((h.dt + timezoneOffset) * 1000);
-            return {
-                date: itemDate,
-                dayOfMonth: itemDate.getUTCDate(),
-                time: formatTimeFromTimestamp(h.dt, timezoneOffset, { hour: 'numeric', hour12: true }),
-                condition: mapWeatherCondition(h.weather[0].main),
-                temperature: Math.round(h.main.temp),
-                windSpeed: Math.round(h.wind.speed * 3.6),
-                humidity: Math.round(h.main.humidity),
-            };
-        })
-        .filter((h: any) => h.dayOfMonth === todayDate || h.dayOfMonth === todayDate + 1);
-
-
-    const dailyForecasts: Record<string, { temps: number[], humidities: number[], conditions: string[] }> = {};
-
-    forecastData.list.forEach((item: any) => {
-        const day = format(new Date(item.dt * 1000), 'EEE');
-        if (!dailyForecasts[day]) {
-            dailyForecasts[day] = { temps: [], humidities: [], conditions: [] };
-        }
-        dailyForecasts[day].temps.push(item.main.temp);
-        dailyForecasts[day].humidities.push(item.main.humidity);
-        dailyForecasts[day].conditions.push(item.weather[0].main);
+    if (effectiveLat === undefined || effectiveLon === undefined) {
+        throw new Error("Could not determine location coordinates.");
+    }
+    
+    const oneCallData = await fetchFromOpenWeather('data/2.5/onecall', { 
+        lat: effectiveLat.toString(), 
+        lon: effectiveLon.toString(),
+        exclude: 'minutely,alerts'
     });
 
-    const forecast: DailyData[] = Object.keys(dailyForecasts).slice(0, 7).map(day => {
-        const dayData = dailyForecasts[day];
-        const mostCommonCondition = dayData.conditions.sort((a,b) =>
-              dayData.conditions.filter(v => v===a).length
-            - dayData.conditions.filter(v => v===b).length
-        ).pop()!;
-        
-        return {
-            day: day,
-            condition: mapWeatherCondition(mostCommonCondition),
-            tempHigh: Math.round(Math.max(...dayData.temps)),
-            tempLow: Math.round(Math.min(...dayData.temps)),
-            humidity: Math.round(dayData.humidities.reduce((a, b) => a + b) / dayData.humidities.length),
-        };
-    });
+    if (!locationName && oneCallData.timezone) {
+        locationName = oneCallData.timezone.split('/')[1].replace('_', ' ');
+    }
 
+    const timezoneOffset = oneCallData.timezone_offset;
+
+    const hourly = oneCallData.hourly.slice(0, 24).map((h: any) => ({
+        time: formatTimeFromTimestamp(h.dt, timezoneOffset, { hour: 'numeric', hour12: true }),
+        condition: mapWeatherCondition(h.weather[0].main),
+        temperature: Math.round(h.temp),
+        windSpeed: Math.round(h.wind_speed * 3.6),
+        humidity: Math.round(h.humidity),
+    }));
+
+    const forecast = oneCallData.daily.slice(0, 7).map((d: any) => ({
+        day: format(new Date(d.dt * 1000), 'EEE'),
+        condition: mapWeatherCondition(d.weather[0].main),
+        tempHigh: Math.round(d.temp.max),
+        tempLow: Math.round(d.temp.min),
+        humidity: Math.round(d.humidity),
+    }));
 
     const transformedData: GetWeatherDataOutput = {
-        location: currentWeatherData.name,
-        condition: mapWeatherCondition(currentWeatherData.weather[0].main),
-        temperature: Math.round(currentWeatherData.main.temp),
-        feelsLike: Math.round(currentWeatherData.main.feels_like),
-        humidity: Math.round(currentWeatherData.main.humidity),
-        windSpeed: Math.round(currentWeatherData.wind.speed * 3.6),
-        sunrise: formatTimeFromTimestamp(currentWeatherData.sys.sunrise, timezoneOffset),
-        sunset: formatTimeFromTimestamp(currentWeatherData.sys.sunset, timezoneOffset),
-        currentTime: formatTimeFromTimestamp(currentWeatherData.dt, timezoneOffset),
+        location: locationName || 'Current Location',
+        condition: mapWeatherCondition(oneCallData.current.weather[0].main),
+        temperature: Math.round(oneCallData.current.temp),
+        feelsLike: Math.round(oneCallData.current.feels_like),
+        humidity: Math.round(oneCallData.current.humidity),
+        windSpeed: Math.round(oneCallData.current.wind_speed * 3.6),
+        sunrise: formatTimeFromTimestamp(oneCallData.current.sunrise, timezoneOffset),
+        sunset: formatTimeFromTimestamp(oneCallData.current.sunset, timezoneOffset),
+        currentTime: formatTimeFromTimestamp(oneCallData.current.dt, timezoneOffset),
         forecast: forecast,
         hourly: hourly,
     };
