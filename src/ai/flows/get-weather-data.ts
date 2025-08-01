@@ -22,7 +22,7 @@ const GetWeatherDataInputSchema = z.object({
 export type GetWeatherDataInput = z.infer<typeof GetWeatherDataInputSchema>;
 
 const DailyDataSchema = z.object({
-    day: z.string().describe("Day of the week (e.g., 'Tue') or date."),
+    day: z.string().describe("Day of the week (e.g., 'Tue')."),
     condition: z.enum(['Sunny', 'Cloudy', 'Rainy', 'Snowy', 'Thunderstorm']),
     tempHigh: z.number().describe("Highest temperature for the day in Celsius."),
     tempLow: z.number().describe("Lowest temperature for the day in Celsius."),
@@ -40,7 +40,6 @@ const GetWeatherDataOutputSchema = z.object({
     sunset: z.string().describe("Sunset time (e.g., '7:45 PM')."),
     currentTime: z.string().describe("Current local time (e.g., '2:30 PM')."),
     forecast: z.array(DailyDataSchema).describe("A 7-day weather forecast."),
-    history: z.array(DailyDataSchema).describe("A 5-day historical weather data."),
     hourly: z.array(z.object({
         time: z.string().describe("The hour for the forecast (e.g., '3pm')."),
         condition: z.enum(['Sunny', 'Cloudy', 'Rainy', 'Snowy', 'Thunderstorm']),
@@ -147,7 +146,7 @@ const getWeatherDataFlow = ai.defineFlow(
     
     const timezoneOffset = oneCallData.timezone_offset;
 
-    const forecast = oneCallData.daily.slice(1, 8).map((day: any): DailyData => ({
+    const forecast = oneCallData.daily.slice(1, 8).map((day: any): Omit<DailyData, 'humidity'> & {humidity: number} => ({
         day: format(new Date(day.dt * 1000), 'EEE'),
         condition: mapWeatherCondition(day.weather[0].icon),
         tempHigh: Math.round(day.temp.max),
@@ -163,7 +162,7 @@ const getWeatherDataFlow = ai.defineFlow(
         humidity: Math.round(hour.humidity),
     }));
 
-    const transformedData: GetWeatherDataOutput = {
+    const transformedData: Omit<GetWeatherDataOutput, 'history'> = {
         location: queryName,
         condition: mapWeatherCondition(oneCallData.current.weather[0].icon),
         temperature: Math.round(oneCallData.current.temp),
@@ -174,10 +173,9 @@ const getWeatherDataFlow = ai.defineFlow(
         sunset: formatTimeFromTimestamp(oneCallData.current.sunset, timezoneOffset),
         currentTime: formatTimeFromTimestamp(oneCallData.current.dt, timezoneOffset),
         forecast: forecast,
-        history: [], // This endpoint does not provide historical data.
         hourly: hourly,
     };
     
-    return transformedData;
+    return transformedData as GetWeatherDataOutput;
   }
 );

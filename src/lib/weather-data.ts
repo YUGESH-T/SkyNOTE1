@@ -21,7 +21,6 @@ export interface WeatherData {
   sunset: string;
   currentTime: string;
   forecast: DailyData[];
-  history: DailyData[];
   hourly: HourlyForecast[];
 }
 
