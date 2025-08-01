@@ -87,7 +87,7 @@ function formatTimeFromTimestamp(timestamp: number, timezoneOffset: number, opti
 
 async function fetchFromOpenWeather(endpoint: string, params: Record<string, string>) {
     const apiKey = "888c6f6d1a152bfd3be977d295ab111f";
-    const url = new URL(`https://api.openweathermap.org/data/2.5/${endpoint}`);
+    const url = new URL(`https://api.openweathermap.org/${endpoint}`);
     url.searchParams.append('appid', apiKey);
     url.searchParams.append('units', 'metric');
     for (const key in params) {
@@ -119,22 +119,37 @@ const getWeatherDataFlow = ai.defineFlow(
         throw new Error("Either location or lat/lon must be provided.");
     }
     
-    const currentWeatherData = await fetchFromOpenWeather('weather', queryParams as Record<string, string>);
-    const forecastData = await fetchFromOpenWeather('forecast', queryParams as Record<string, string>);
+    const currentWeatherData = await fetchFromOpenWeather('data/2.5/weather', queryParams as Record<string, string>);
+    
+    const forecastParams = { ...queryParams };
+    if (!forecastParams.q) {
+        forecastParams.lat = currentWeatherData.coord.lat.toString();
+        forecastParams.lon = currentWeatherData.coord.lon.toString();
+    }
+
+    const forecastData = await fetchFromOpenWeather('data/2.5/forecast', forecastParams as Record<string, string>);
 
     const timezoneOffset = currentWeatherData.timezone;
-    const nowInSeconds = Math.floor(Date.now() / 1000);
-    const twentyFourHoursLaterInSeconds = nowInSeconds + (24 * 60 * 60);
+
+    const today = new Date();
+    today.setSeconds(today.getSeconds() + timezoneOffset);
+    const todayDate = today.getUTCDate();
 
     const hourly = forecastData.list
-        .filter((h: any) => h.dt >= nowInSeconds && h.dt <= twentyFourHoursLaterInSeconds)
-        .map((h: any) => ({
-            time: formatTimeFromTimestamp(h.dt, timezoneOffset, { hour: 'numeric', hour12: true }),
-            condition: mapWeatherCondition(h.weather[0].main),
-            temperature: Math.round(h.main.temp),
-            windSpeed: Math.round(h.wind.speed * 3.6),
-            humidity: Math.round(h.main.humidity),
-        }));
+        .map((h: any) => {
+            const itemDate = new Date((h.dt + timezoneOffset) * 1000);
+            return {
+                date: itemDate,
+                dayOfMonth: itemDate.getUTCDate(),
+                time: formatTimeFromTimestamp(h.dt, timezoneOffset, { hour: 'numeric', hour12: true }),
+                condition: mapWeatherCondition(h.weather[0].main),
+                temperature: Math.round(h.main.temp),
+                windSpeed: Math.round(h.wind.speed * 3.6),
+                humidity: Math.round(h.main.humidity),
+            };
+        })
+        .filter((h: any) => h.dayOfMonth === todayDate || h.dayOfMonth === todayDate + 1);
+
 
     const dailyForecasts: Record<string, { temps: number[], humidities: number[], conditions: string[] }> = {};
 
