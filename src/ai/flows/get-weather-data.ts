@@ -2,7 +2,7 @@
 'use server';
 
 /**
- * @fileOverview Retrieves weather data for a specified location from the Weatherbit API.
+ * @fileOverview Retrieves weather data for a specified location from the OpenWeatherMap API.
  *
  * - getWeatherData - A function that fetches weather data for a given location.
  * - GetWeatherDataInput - The input type for the getWeatherData function.
@@ -11,7 +11,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { subDays, format } from 'date-fns';
+import { format } from 'date-fns';
 
 const GetWeatherDataInputSchema = z.object({
   location: z.string().optional().describe('The city name to get weather data for (e.g., "London").'),
@@ -52,74 +52,49 @@ const GetWeatherDataOutputSchema = z.object({
 });
 export type GetWeatherDataOutput = z.infer<typeof GetWeatherDataOutputSchema>;
 
-function mapWeatherCondition(weatherbitCode: number): 'Sunny' | 'Cloudy' | 'Rainy' | 'Snowy' | 'Thunderstorm' {
-    if (weatherbitCode >= 200 && weatherbitCode <= 233) return 'Thunderstorm';
-    if (weatherbitCode >= 801 && weatherbitCode <= 804) return 'Cloudy';
-    if (weatherbitCode === 800) return 'Sunny';
-    if (weatherbitCode >= 600 && weatherbitCode <= 623) return 'Snowy';
-    if (weatherbitCode >= 300 && weatherbitCode <= 522) return 'Rainy';
-    return 'Sunny'; // Default
+function mapWeatherCondition(iconCode: string): 'Sunny' | 'Cloudy' | 'Rainy' | 'Snowy' | 'Thunderstorm' {
+    const mapping: Record<string, 'Sunny' | 'Cloudy' | 'Rainy' | 'Snowy' | 'Thunderstorm'> = {
+        '01d': 'Sunny', '01n': 'Sunny',
+        '02d': 'Cloudy', '02n': 'Cloudy',
+        '03d': 'Cloudy', '03n': 'Cloudy',
+        '04d': 'Cloudy', '04n': 'Cloudy',
+        '09d': 'Rainy', '09n': 'Rainy',
+        '10d': 'Rainy', '10n': 'Rainy',
+        '11d': 'Thunderstorm', '11n': 'Thunderstorm',
+        '13d': 'Snowy', '13n': 'Snowy',
+        '50d': 'Cloudy', '50n': 'Cloudy' // Mist/fog as cloudy
+    };
+    return mapping[iconCode] || 'Sunny';
 }
 
-function formatTimeFromTimestamp(timestamp: number, timezone: string): string {
+function formatTimeFromTimestamp(timestamp: number, timezone: string, options?: Intl.DateTimeFormatOptions): string {
   try {
     const date = new Date(timestamp * 1000);
-    return new Intl.DateTimeFormat('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-      timeZone: timezone,
-    }).format(date);
+    const defaultOptions: Intl.DateTimeFormatOptions = {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: timezone,
+    };
+    return new Intl.DateTimeFormat('en-US', { ...defaultOptions, ...options }).format(date);
   } catch (e) {
     if (e instanceof RangeError) {
       console.warn(`Invalid timezone '${timezone}'. Formatting with server's local time.`);
-      try {
-        const date = new Date(timestamp * 1000);
-        return new Intl.DateTimeFormat('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true,
-        }).format(date);
-      } catch (localErr) {
-        console.error('Error formatting time with local fallback:', localErr);
-        // Final fallback to a simple representation
-        return new Date(timestamp * 1000).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-      }
+      const date = new Date(timestamp * 1000);
+      return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
     }
     console.error('Error formatting time:', e);
     return 'N/A';
   }
 }
 
-function convertUtcToLocalTime(utcTime: string, timezone: string): string {
-    try {
-        // Create a date object with today's date and the UTC time
-        const today = new Date().toISOString().slice(0, 10);
-        const utcDate = new Date(`${today}T${utcTime}Z`);
-
-        // Format it to the target timezone
-        const localTime = new Intl.DateTimeFormat('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true,
-            timeZone: timezone,
-        }).format(utcDate);
-
-        return localTime;
-    } catch (error) {
-        console.error('Error converting UTC to local time:', error);
-        return 'N/A';
-    }
-}
-
-
-async function fetchFromWeatherbit(endpoint: string, params: Record<string, string>) {
-    const apiKey = process.env.WEATHERBIT_API_KEY;
+async function fetchFromOpenWeather(endpoint: string, params: Record<string, string>) {
+    const apiKey = process.env.OPENWEATHER_API_KEY;
     if (!apiKey) {
-        throw new Error('WEATHERBIT_API_KEY is not set. Please add it to your .env file.');
+        throw new Error('OPENWEATHER_API_KEY is not set. Please add it to your .env file.');
     }
-    const url = new URL(`https://api.weatherbit.io/v2.0/${endpoint}`);
-    url.searchParams.append('key', apiKey);
+    const url = new URL(`https://api.openweathermap.org/${endpoint}`);
+    url.searchParams.append('appid', apiKey);
     for (const key in params) {
         url.searchParams.append(key, params[key]);
     }
@@ -127,7 +102,7 @@ async function fetchFromWeatherbit(endpoint: string, params: Record<string, stri
     const response = await fetch(url.toString());
     if (!response.ok) {
         const errorBody = await response.text();
-        throw new Error(`Weatherbit API request failed for endpoint '${endpoint}' with status ${response.status}: ${errorBody}`);
+        throw new Error(`OpenWeather API request failed for endpoint '${endpoint}' with status ${response.status}: ${errorBody}`);
     }
     return response.json();
 }
@@ -139,79 +114,77 @@ const getWeatherDataFlow = ai.defineFlow(
     outputSchema: GetWeatherDataOutputSchema,
   },
   async ({ location, lat, lon }) => {
-    
-    const queryParams: Record<string, string> = {};
+    let cityLat = lat;
+    let cityLon = lon;
+    let cityName = location;
+
     if (location) {
-        queryParams.city = location;
-    } else if (typeof lat === 'number' && typeof lon === 'number') {
-        queryParams.lat = lat.toString();
-        queryParams.lon = lon.toString();
+        const geocodingData = await fetchFromOpenWeather('geo/1.0/direct', { q: location, limit: '1' });
+        if (!geocodingData || geocodingData.length === 0) {
+            throw new Error(`Could not find location: ${location}`);
+        }
+        cityLat = geocodingData[0].lat;
+        cityLon = geocodingData[0].lon;
+        cityName = geocodingData[0].name;
     }
 
-    const today = new Date();
-    const endDate = format(today, 'yyyy-MM-dd');
-    const startDate = format(subDays(today, 5), 'yyyy-MM-dd');
-
-    const [currentData, forecastData, hourlyData, historyData] = await Promise.all([
-        fetchFromWeatherbit('current', queryParams),
-        fetchFromWeatherbit('forecast/daily', { ...queryParams, days: '7' }),
-        fetchFromWeatherbit('forecast/hourly', { ...queryParams, hours: '24' }),
-        fetchFromWeatherbit('history/daily', { ...queryParams, start_date: startDate, end_date: endDate }),
-    ]);
-
-    if (!currentData.data || currentData.data.length === 0) {
-        throw new Error(`No current weather data found for the specified location.`);
+    if (cityLat === undefined || cityLon === undefined) {
+         throw new Error('Latitude and Longitude must be provided.');
     }
 
-    const current = currentData.data[0];
-    const forecast = forecastData.data;
-    const hourly = hourlyData.data;
-    const history = historyData.data;
-    const timezone = current.timezone;
-    const currentLat = current.lat;
-    const currentLon = current.lon;
-
-    const sunriseSunsetResponse = await fetch(`https://api.sunrise-sunset.org/json?lat=${currentLat}&lng=${currentLon}&formatted=0`);
-    if (!sunriseSunsetResponse.ok) {
-        throw new Error(`Sunrise-Sunset API request failed with status ${sunriseSunsetResponse.status}`);
-    }
-    const sunriseSunsetData = await sunriseSunsetResponse.json();
-    const sunriseUtc = sunriseSunsetData.results.sunrise;
-    const sunsetUtc = sunriseSunsetData.results.sunset;
-
-    const sunrise = convertUtcToLocalTime(new Date(sunriseUtc).toISOString().substr(11, 8), timezone);
-    const sunset = convertUtcToLocalTime(new Date(sunsetUtc).toISOString().substr(11, 8), timezone);
+    // OpenWeather One Call API provides current, hourly and daily forecasts
+    const weatherData = await fetchFromOpenWeather('data/3.0/onecall', {
+        lat: cityLat.toString(),
+        lon: cityLon.toString(),
+        units: 'metric', // For Celsius
+        exclude: 'minutely,alerts'
+    });
     
-    const transformDailyData = (day: any) => {
-        const weatherCode = day.weather?.code ?? day.weather_code;
-        return {
-          day: new Date(day.valid_date).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' }),
-          condition: mapWeatherCondition(weatherCode),
-          tempHigh: Math.round(day.max_temp ?? day.high_temp),
-          tempLow: Math.round(day.min_temp ?? day.low_temp),
-          humidity: Math.round(day.rh),
-        };
-    };
+    if (!cityName) {
+        const reverseGeocoding = await fetchFromOpenWeather('geo/1.0/reverse', {
+            lat: cityLat.toString(),
+            lon: cityLon.toString(),
+            limit: '1',
+        });
+        if(reverseGeocoding && reverseGeocoding.length > 0) {
+            cityName = reverseGeocoding[0].name;
+        } else {
+            cityName = "Current Location";
+        }
+    }
+    
+    const timezone = weatherData.timezone;
+    const current = weatherData.current;
+    const daily = weatherData.daily;
+    const hourly = weatherData.hourly;
+
+    const transformDailyData = (day: any, index: number): DailyData => ({
+        day: formatTimeFromTimestamp(day.dt, timezone, { weekday: 'short' }),
+        condition: mapWeatherCondition(day.weather[0].icon),
+        tempHigh: Math.round(day.temp.max),
+        tempLow: Math.round(day.temp.min),
+        humidity: Math.round(day.humidity),
+    });
 
     const transformedData: GetWeatherDataOutput = {
-        location: current.city_name,
-        condition: mapWeatherCondition(current.weather.code),
+        location: cityName,
+        condition: mapWeatherCondition(current.weather[0].icon),
         temperature: Math.round(current.temp),
-        feelsLike: Math.round(current.app_temp),
-        humidity: Math.round(current.rh),
-        windSpeed: Math.round(current.wind_spd * 3.6),
-        sunrise: sunrise,
-        sunset: sunset,
-        currentTime: formatTimeFromTimestamp(current.ts, timezone),
-        forecast: forecast.map(transformDailyData),
-        history: history.map(transformDailyData),
-        hourly: hourly.map((hour: any) => ({
-            time: formatTimeFromTimestamp(hour.ts, timezone),
-            condition: mapWeatherCondition(hour.weather.code),
+        feelsLike: Math.round(current.feels_like),
+        humidity: Math.round(current.humidity),
+        windSpeed: Math.round(current.wind_speed * 3.6), // m/s to km/h
+        sunrise: formatTimeFromTimestamp(current.sunrise, timezone),
+        sunset: formatTimeFromTimestamp(current.sunset, timezone),
+        currentTime: formatTimeFromTimestamp(current.dt, timezone),
+        forecast: daily.slice(0, 7).map(transformDailyData),
+        history: [], // OpenWeather free tier doesn't provide easy history access.
+        hourly: hourly.slice(0, 24).map((hour: any) => ({
+            time: formatTimeFromTimestamp(hour.dt, timezone),
+            condition: mapWeatherCondition(hour.weather[0].icon),
             temperature: Math.round(hour.temp),
-            windSpeed: Math.round(hour.wind_spd * 3.6),
-            humidity: Math.round(hour.rh),
-        })).slice(0, 24),
+            windSpeed: Math.round(hour.wind_speed * 3.6),
+            humidity: Math.round(hour.humidity),
+        })),
     };
     
     return transformedData;
