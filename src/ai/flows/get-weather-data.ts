@@ -141,7 +141,7 @@ const getWeatherDataFlow = ai.defineFlow(
     });
 
     if (!locationName) {
-        const reverseGeo = await fetchFromOpenWeather('geo/1.0/reverse', { lat: effectiveLat.toString(), lon: effectiveLon.toString(), limit: '1' });
+        const reverseGeo = await fetchFromOpenWebather('geo/1.0/reverse', { lat: effectiveLat.toString(), lon: effectiveLon.toString(), limit: '1' });
         locationName = reverseGeo[0]?.name || 'Current Location';
     }
     
@@ -164,7 +164,7 @@ const getWeatherDataFlow = ai.defineFlow(
     }));
 
     const transformedData: GetWeatherDataOutput = {
-        location: locationName,
+        location: locationName!,
         condition: mapWeatherCondition(weatherData.current.weather[0].icon),
         temperature: Math.round(weatherData.current.temp),
         feelsLike: Math.round(weatherData.current.feels_like),
