@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -85,25 +86,19 @@ function formatTimeFromTimestamp(timestamp: number, timezoneOffset: number, opti
   }
 }
 
-async function fetchFromOpenWeather(endpoint: string, params: Record<string, string>) {
-    const apiKey = "888c6f6d1a152bfd3be977d295ab111f";
-    const url = new URL(`https://api.openweathermap.org/${endpoint}`);
-    url.searchParams.append('appid', apiKey);
-    url.searchParams.append('units', 'metric');
-    for (const key in params) {
-        url.searchParams.append(key, params[key]);
-    }
-    const response = await fetch(url.toString());
+async function getCoordinatesForLocation(location: string, apiKey: string): Promise<{ lat: number; lon: number; name: string }> {
+    const geocodingUrl = new URL('https://api.openweathermap.org/geo/1.0/direct');
+    geocodingUrl.searchParams.append('q', location);
+    geocodingUrl.searchParams.append('limit', '1');
+    geocodingUrl.searchParams.append('appid', apiKey);
+    
+    const response = await fetch(geocodingUrl.toString());
     if (!response.ok) {
         const errorBody = await response.text();
-        throw new Error(`OpenWeather API request failed for endpoint '${endpoint}' with status ${response.status}: ${errorBody}`);
+        throw new Error(`OpenWeather API geocoding request failed with status ${response.status}: ${errorBody}`);
     }
-    return response.json();
-}
+    const geocodingData = await response.json();
 
-
-async function getCoordinatesForLocation(location: string): Promise<{ lat: number; lon: number; name: string }> {
-    const geocodingData = await fetchFromOpenWeather('geo/1.0/direct', { q: location, limit: '1' });
     if (!geocodingData || geocodingData.length === 0) {
         throw new Error(`Could not find coordinates for location: ${location}`);
     }
@@ -118,13 +113,14 @@ const getWeatherDataFlow = ai.defineFlow(
     outputSchema: GetWeatherDataOutputSchema,
   },
   async ({ location, lat, lon }) => {
+    const apiKey = "888c6f6d1a152bfd3be977d295ab111f";
     
     let locationName = location;
     let effectiveLat = lat;
     let effectiveLon = lon;
 
     if (location) {
-        const coords = await getCoordinatesForLocation(location);
+        const coords = await getCoordinatesForLocation(location, apiKey);
         effectiveLat = coords.lat;
         effectiveLon = coords.lon;
         locationName = coords.name;
@@ -133,12 +129,21 @@ const getWeatherDataFlow = ai.defineFlow(
     if (effectiveLat === undefined || effectiveLon === undefined) {
         throw new Error("Could not determine location coordinates.");
     }
-    
-    const oneCallData = await fetchFromOpenWeather('data/2.5/onecall', { 
-        lat: effectiveLat.toString(), 
-        lon: effectiveLon.toString(),
-        exclude: 'minutely,alerts'
-    });
+
+    const oneCallUrl = new URL('https://api.openweathermap.org/data/2.5/onecall');
+    oneCallUrl.searchParams.append('lat', effectiveLat.toString());
+    oneCallUrl.searchParams.append('lon', effectiveLon.toString());
+    oneCallUrl.searchParams.append('exclude', 'minutely,alerts');
+    oneCallUrl.searchParams.append('units', 'metric');
+    oneCallUrl.searchParams.append('appid', apiKey);
+
+    const oneCallResponse = await fetch(oneCallUrl.toString());
+    if (!oneCallResponse.ok) {
+        const errorBody = await oneCallResponse.text();
+        throw new Error(`OpenWeather API request failed for endpoint 'data/2.5/onecall' with status ${oneCallResponse.status}: ${errorBody}`);
+    }
+    const oneCallData = await oneCallResponse.json();
+
 
     if (!locationName && oneCallData.timezone) {
         locationName = oneCallData.timezone.split('/')[1].replace('_', ' ');
