@@ -51,6 +51,10 @@ const GetWeatherDataOutputSchema = z.object({
 });
 export type GetWeatherDataOutput = z.infer<typeof GetWeatherDataOutputSchema>;
 
+export async function getWeatherData(input: GetWeatherDataInput): Promise<GetWeatherDataOutput> {
+  return getWeatherDataFlow(input);
+}
+
 function mapWeatherCondition(iconCode: string): 'Sunny' | 'Cloudy' | 'Rainy' | 'Snowy' | 'Thunderstorm' {
     const mapping: Record<string, 'Sunny' | 'Cloudy' | 'Rainy' | 'Snowy' | 'Thunderstorm'> = {
         '01d': 'Sunny', '01n': 'Sunny',
@@ -83,7 +87,10 @@ function formatTimeFromTimestamp(timestamp: number, timezoneOffset: number, opti
 }
 
 async function fetchFromOpenWeather(endpoint: string, params: Record<string, string>) {
-    const apiKey = '888c6f6d1a152bfd3be977d295ab111f';
+    const apiKey = process.env.OPENWEATHER_API_KEY;
+    if (!apiKey) {
+      throw new Error("OpenWeather API key is not configured.");
+    }
     const url = new URL(`https://api.openweathermap.org/${endpoint}`);
     url.searchParams.append('appid', apiKey);
     url.searchParams.append('units', 'metric');
@@ -174,7 +181,3 @@ const getWeatherDataFlow = ai.defineFlow(
     return transformedData;
   }
 );
-
-export async function getWeatherData(input: GetWeatherDataInput): Promise<GetWeatherDataOutput> {
-  return getWeatherDataFlow(input);
-}
