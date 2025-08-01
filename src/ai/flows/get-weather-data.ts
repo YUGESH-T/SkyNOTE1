@@ -124,7 +124,7 @@ const getWeatherDataFlow = ai.defineFlow(
     const timezoneOffset = weatherData.timezone;
 
     // Placeholder data for forecast and hourly as the /weather endpoint doesn't provide it.
-    const placeholderDaily: DailyData[] = Array(7).fill(null).map((_, i) => ({
+    const placeholderDaily: GetWeatherDataOutput['forecast'] = Array(7).fill(null).map((_, i) => ({
       day: format(new Date(Date.now() + (i + 1) * 86400000), 'EEE'),
       condition: 'Sunny',
       tempHigh: 0,

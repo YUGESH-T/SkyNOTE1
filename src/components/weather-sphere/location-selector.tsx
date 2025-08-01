@@ -1,12 +1,12 @@
 
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useTransition } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { locations } from '@/lib/weather-data';
+import { getLocationSuggestions } from '@/ai/flows/get-location-suggestions';
 
 interface LocationSelectorProps {
   onLocationSearch: (location: string) => void;
@@ -18,6 +18,8 @@ export default function LocationSelector({ onLocationSearch, isLoading, initialL
   const [location, setLocation] = useState(initialLocation);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSuggesting, startSuggestion] = useTransition();
+
   const suggestionBoxRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -39,32 +41,35 @@ export default function LocationSelector({ onLocationSearch, isLoading, initialL
     }
   };
 
-  const fetchLocalSuggestions = useCallback((input: string) => {
-    if (input.length < 1) {
+  const fetchSuggestions = useCallback((input: string) => {
+    if (input.length < 2) {
       setSuggestions([]);
       return;
     }
-    const lowercasedInput = input.toLowerCase();
-    const filteredSuggestions = locations
-      .map(l => l.location)
-      .filter(l => l.toLowerCase().startsWith(lowercasedInput))
-      .slice(0, 5);
-    setSuggestions(filteredSuggestions);
+    startSuggestion(async () => {
+        try {
+            const result = await getLocationSuggestions({ input });
+            setSuggestions(result.suggestions);
+        } catch (error) {
+            console.error("Failed to fetch suggestions:", error);
+            setSuggestions([]);
+        }
+    });
   }, []);
 
   useEffect(() => {
     const handler = setTimeout(() => {
       if (location && showSuggestions) {
-        fetchLocalSuggestions(location);
+        fetchSuggestions(location);
       } else {
         setSuggestions([]);
       }
-    }, 100);
+    }, 200);
 
     return () => {
       clearTimeout(handler);
     };
-  }, [location, fetchLocalSuggestions, showSuggestions]);
+  }, [location, fetchSuggestions, showSuggestions]);
 
 
   useEffect(() => {
@@ -102,6 +107,9 @@ export default function LocationSelector({ onLocationSearch, isLoading, initialL
               disabled={isLoading}
               autoComplete="off"
             />
+            {isSuggesting && (
+                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 animate-spin text-white/50" />
+            )}
         </div>
         <Button type="submit" onClick={handleSearch} disabled={isLoading || !location} className="h-12 shrink-0 bg-black/20 backdrop-blur-xl border-white/10 hover:bg-card">
           {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
