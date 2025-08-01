@@ -86,7 +86,7 @@ function formatTimeFromTimestamp(timestamp: number, timezoneOffset: number, opti
 }
 
 async function fetchFromOpenWeather(endpoint: string, params: Record<string, string>) {
-    const apiKey = process.env.OPENWEATHER_API_KEY;
+    const apiKey = "888c6f6d1a152bfd3be977d295ab111f";
     if (!apiKey) {
       throw new Error("OpenWeather API key is not configured.");
     }
@@ -162,7 +162,7 @@ const getWeatherDataFlow = ai.defineFlow(
         humidity: Math.round(hour.humidity),
     }));
 
-    const transformedData: Omit<GetWeatherDataOutput, 'history'> = {
+    const transformedData: GetWeatherDataOutput = {
         location: queryName,
         condition: mapWeatherCondition(oneCallData.current.weather[0].icon),
         temperature: Math.round(oneCallData.current.temp),
@@ -175,7 +175,6 @@ const getWeatherDataFlow = ai.defineFlow(
         forecast: forecast,
         hourly: hourly,
     };
-    
-    return transformedData as GetWeatherDataOutput;
+    return transformedData;
   }
 );
