@@ -79,7 +79,7 @@ export default function WeatherVisualization({ weatherCondition }: WeatherVisual
                 sun.scale.setScalar(Math.sin(elapsedTime * 1.5) * 0.05 + 1);
              }
          }
-         if (weatherCondition === 'Cloudy' || weatherCondition === 'Thunderstorm' || weatherCondition === 'Rainy') {
+         if (weatherCondition === 'Cloudy' || weatherCondition === 'Thunderstorm' || weatherCondition === 'Rainy' || weatherCondition === 'Fog' || weatherCondition === 'Haze') {
             stateRef.weatherGroup.children.forEach((cloud, i) => {
                 cloud.rotation.y += delta * 0.05 * (i % 2 === 0 ? 1 : -1);
                 cloud.children.forEach((part, j) => {
@@ -178,17 +178,19 @@ export default function WeatherVisualization({ weatherCondition }: WeatherVisual
         
         break;
       }
+      case 'Fog':
+      case 'Haze':
       case 'Cloudy': {
         const cloudMaterial = new THREE.MeshStandardMaterial({
-          color: 0xdddddd,
-          opacity: 0.85,
+          color: weatherCondition === 'Fog' || weatherCondition === 'Haze' ? 0xaaaaaa : 0xdddddd,
+          opacity: weatherCondition === 'Fog' || weatherCondition === 'Haze' ? 0.65 : 0.85,
           transparent: true,
           roughness: 0.8,
           metalness: 0.1,
           emissive: 0x111111,
         });
 
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < (weatherCondition === 'Fog' || weatherCondition === 'Haze' ? 8 : 5); i++) {
           const cloudGroup = new THREE.Group();
           for (let j = 0; j < 6; j++) {
             const partGeom = new THREE.IcosahedronGeometry(Math.random() * 0.8 + 0.5, 2);

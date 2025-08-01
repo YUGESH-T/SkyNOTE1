@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
-import { Sun, Cloud, CloudRain, Snowflake, Zap, Wind } from 'lucide-react';
+import { Sun, Cloud, CloudRain, Snowflake, Zap, CloudFog, Haze } from 'lucide-react';
 
-export type WeatherCondition = 'Sunny' | 'Cloudy' | 'Rainy' | 'Snowy' | 'Thunderstorm';
+export type WeatherCondition = 'Sunny' | 'Cloudy' | 'Rainy' | 'Snowy' | 'Thunderstorm' | 'Fog' | 'Haze';
 
 export interface DailyData {
   day: string;
@@ -46,6 +46,8 @@ export const weatherIcons: Record<WeatherCondition, LucideIcon> = {
   Rainy: CloudRain,
   Snowy: Snowflake,
   Thunderstorm: Zap,
+  Fog: CloudFog,
+  Haze: Haze,
 };
 
 // Expanded list of locations for better autocomplete suggestions

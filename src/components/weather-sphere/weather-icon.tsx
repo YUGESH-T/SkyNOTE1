@@ -13,6 +13,8 @@ const animationClasses: Record<WeatherCondition, string> = {
     Rainy: 'animate-rain',
     Snowy: 'animate-snow',
     Thunderstorm: 'animate-thunder',
+    Fog: 'animate-cloud',
+    Haze: 'animate-cloud',
 };
 
 const WeatherIcon: FC<WeatherIconProps> = ({ condition, className, ...props }) => {

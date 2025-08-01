@@ -12,6 +12,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { format } from 'date-fns';
+import type { WeatherCondition } from '@/lib/weather-data';
 
 const GetWeatherDataInputSchema = z.object({
   location: z.string().optional().describe('The city name to get weather data for (e.g., "London").'),
@@ -24,7 +25,7 @@ export type GetWeatherDataInput = z.infer<typeof GetWeatherDataInputSchema>;
 
 const DailyDataSchema = z.object({
     day: z.string().describe("Day of the week (e.g., 'Tue')."),
-    condition: z.enum(['Sunny', 'Cloudy', 'Rainy', 'Snowy', 'Thunderstorm']),
+    condition: z.enum(['Sunny', 'Cloudy', 'Rainy', 'Snowy', 'Thunderstorm', 'Fog', 'Haze']),
     tempHigh: z.number().describe("Highest temperature for the day in Celsius."),
     tempLow: z.number().describe("Lowest temperature for the day in Celsius."),
     humidity: z.number().describe("Average humidity percentage for the day."),
@@ -32,7 +33,7 @@ const DailyDataSchema = z.object({
 
 const GetWeatherDataOutputSchema = z.object({
     location: z.string(),
-    condition: z.enum(['Sunny', 'Cloudy', 'Rainy', 'Snowy', 'Thunderstorm']),
+    condition: z.enum(['Sunny', 'Cloudy', 'Rainy', 'Snowy', 'Thunderstorm', 'Fog', 'Haze']),
     temperature: z.number().describe("Temperature in Celsius."),
     feelsLike: z.number().describe("The 'feels like' temperature in Celsius, considering factors like humidity and wind."),
     humidity: z.number().describe("Humidity percentage."),
@@ -43,7 +44,7 @@ const GetWeatherDataOutputSchema = z.object({
     forecast: z.array(DailyDataSchema).describe("A 7-day weather forecast."),
     hourly: z.array(z.object({
         time: z.string().describe("The hour for the forecast (e.g., '3pm')."),
-        condition: z.enum(['Sunny', 'Cloudy', 'Rainy', 'Snowy', 'Thunderstorm']),
+        condition: z.enum(['Sunny', 'Cloudy', 'Rainy', 'Snowy', 'Thunderstorm', 'Fog', 'Haze']),
         temperature: z.number().describe("Temperature for the hour in Celsius."),
         windSpeed: z.number().describe("Wind speed in km/h for the hour."),
         humidity: z.number().describe("Humidity percentage for the hour."),
@@ -55,17 +56,17 @@ export async function getWeatherData(input: GetWeatherDataInput): Promise<GetWea
   return getWeatherDataFlow(input);
 }
 
-function mapWeatherCondition(main: string): 'Sunny' | 'Cloudy' | 'Rainy' | 'Snowy' | 'Thunderstorm' {
-    const mapping: Record<string, 'Sunny' | 'Cloudy' | 'Rainy' | 'Snowy' | 'Thunderstorm'> = {
+function mapWeatherCondition(main: string): WeatherCondition {
+    const mapping: Record<string, WeatherCondition> = {
         'Clear': 'Sunny',
         'Clouds': 'Cloudy',
         'Rain': 'Rainy',
         'Drizzle': 'Rainy',
         'Snow': 'Snowy',
         'Thunderstorm': 'Thunderstorm',
-        'Mist': 'Cloudy',
-        'Fog': 'Cloudy',
-        'Haze': 'Cloudy'
+        'Mist': 'Fog',
+        'Fog': 'Fog',
+        'Haze': 'Haze'
     };
     return mapping[main] || 'Sunny';
 }

@@ -24,6 +24,8 @@ const weatherColorClasses = {
   Rainy: "from-indigo-600/80 to-slate-900/80",
   Snowy: "from-blue-300 to-cyan-500",
   Thunderstorm: "from-gray-800 via-gray-900 to-black",
+  Fog: "from-slate-400 to-gray-500",
+  Haze: "from-yellow-200 to-amber-400",
 };
 
 export default function WeatherDashboard() {
