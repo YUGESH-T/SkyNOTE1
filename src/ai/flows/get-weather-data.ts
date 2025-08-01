@@ -123,14 +123,18 @@ const getWeatherDataFlow = ai.defineFlow(
     const forecastData = await fetchFromOpenWeather('forecast', queryParams as Record<string, string>);
 
     const timezoneOffset = currentWeatherData.timezone;
+    const nowInSeconds = Math.floor(Date.now() / 1000);
+    const twentyFourHoursLaterInSeconds = nowInSeconds + (24 * 60 * 60);
 
-    const hourly = forecastData.list.slice(0, 8).map((h: any) => ({
-        time: formatTimeFromTimestamp(h.dt, timezoneOffset, { hour: 'numeric', hour12: true }),
-        condition: mapWeatherCondition(h.weather[0].main),
-        temperature: Math.round(h.main.temp),
-        windSpeed: Math.round(h.wind.speed * 3.6),
-        humidity: Math.round(h.main.humidity),
-    }));
+    const hourly = forecastData.list
+        .filter((h: any) => h.dt >= nowInSeconds && h.dt <= twentyFourHoursLaterInSeconds)
+        .map((h: any) => ({
+            time: formatTimeFromTimestamp(h.dt, timezoneOffset, { hour: 'numeric', hour12: true }),
+            condition: mapWeatherCondition(h.weather[0].main),
+            temperature: Math.round(h.main.temp),
+            windSpeed: Math.round(h.wind.speed * 3.6),
+            humidity: Math.round(h.main.humidity),
+        }));
 
     const dailyForecasts: Record<string, { temps: number[], humidities: number[], conditions: string[] }> = {};
 
