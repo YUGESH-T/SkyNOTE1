@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -40,7 +39,7 @@ const GetWeatherDataOutputSchema = z.object({
     sunrise: z.string().describe("Sunrise time (e.g., '6:30 AM')."),
     sunset: z.string().describe("Sunset time (e.g., '7:45 PM')."),
     currentTime: z.string().describe("Current local time (e.g., '2:30 PM')."),
-    forecast: z.array(DailyDataSchema).length(7).describe("A 7-day weather forecast."),
+    forecast: z.array(DailyDataSchema).describe("A 7-day weather forecast."),
     history: z.array(DailyDataSchema).describe("A 5-day historical weather data."),
     hourly: z.array(z.object({
         time: z.string().describe("The hour for the forecast (e.g., '3pm')."),
@@ -48,7 +47,7 @@ const GetWeatherDataOutputSchema = z.object({
         temperature: z.number().describe("Temperature for the hour in Celsius."),
         windSpeed: z.number().describe("Wind speed in km/h for the hour."),
         humidity: z.number().describe("Humidity percentage for the hour."),
-    })).length(24).describe("A 24-hour weather forecast."),
+    })).describe("A 24-hour weather forecast."),
 });
 export type GetWeatherDataOutput = z.infer<typeof GetWeatherDataOutputSchema>;
 
@@ -67,34 +66,29 @@ function mapWeatherCondition(iconCode: string): 'Sunny' | 'Cloudy' | 'Rainy' | '
     return mapping[iconCode] || 'Sunny';
 }
 
-function formatTimeFromTimestamp(timestamp: number, timezone: string, options?: Intl.DateTimeFormatOptions): string {
+function formatTimeFromTimestamp(timestamp: number, timezoneOffset: number, options?: Intl.DateTimeFormatOptions): string {
   try {
-    const date = new Date(timestamp * 1000);
+    const date = new Date((timestamp + timezoneOffset) * 1000);
     const defaultOptions: Intl.DateTimeFormatOptions = {
         hour: 'numeric',
         minute: '2-digit',
         hour12: true,
-        timeZone: timezone,
+        timeZone: 'UTC',
     };
     return new Intl.DateTimeFormat('en-US', { ...defaultOptions, ...options }).format(date);
   } catch (e) {
-    if (e instanceof RangeError) {
-      console.warn(`Invalid timezone '${timezone}'. Formatting with server's local time.`);
-      const date = new Date(timestamp * 1000);
-      return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-    }
     console.error('Error formatting time:', e);
     return 'N/A';
   }
 }
 
-async function fetchFromOpenWeather(endpoint: string, params: Record<string, string>) {
-    const apiKey = process.env.OPENWEATHER_API_KEY;
-    if (!apiKey) {
-        throw new Error('OPENWEATHER_API_KEY is not set. Please add it to your .env file.');
-    }
+async function fetchFromOpenWeather(params: Record<string, string>) {
+    const apiKey = '888c6f6d1a152bfd3be977d295ab111f';
+    const endpoint = 'data/2.5/weather';
+    
     const url = new URL(`https://api.openweathermap.org/${endpoint}`);
     url.searchParams.append('appid', apiKey);
+    url.searchParams.append('units', 'metric');
     for (const key in params) {
         url.searchParams.append(key, params[key]);
     }
@@ -114,77 +108,51 @@ const getWeatherDataFlow = ai.defineFlow(
     outputSchema: GetWeatherDataOutputSchema,
   },
   async ({ location, lat, lon }) => {
-    let cityLat = lat;
-    let cityLon = lon;
-    let cityName = location;
+    let params: Record<string, string> = {};
 
     if (location) {
-        const geocodingData = await fetchFromOpenWeather('geo/1.0/direct', { q: location, limit: '1' });
-        if (!geocodingData || geocodingData.length === 0) {
-            throw new Error(`Could not find location: ${location}`);
-        }
-        cityLat = geocodingData[0].lat;
-        cityLon = geocodingData[0].lon;
-        cityName = geocodingData[0].name;
-    }
-
-    if (cityLat === undefined || cityLon === undefined) {
-         throw new Error('Latitude and Longitude must be provided.');
-    }
-
-    // OpenWeather One Call API provides current, hourly and daily forecasts
-    const weatherData = await fetchFromOpenWeather('data/2.5/onecall', {
-        lat: cityLat.toString(),
-        lon: cityLon.toString(),
-        units: 'metric', // For Celsius
-        exclude: 'minutely,alerts'
-    });
-    
-    if (!cityName) {
-        const reverseGeocoding = await fetchFromOpenWeather('geo/1.0/reverse', {
-            lat: cityLat.toString(),
-            lon: cityLon.toString(),
-            limit: '1',
-        });
-        if(reverseGeocoding && reverseGeocoding.length > 0) {
-            cityName = reverseGeocoding[0].name;
-        } else {
-            cityName = "Current Location";
-        }
+        params['q'] = location;
+    } else if (lat !== undefined && lon !== undefined) {
+        params['lat'] = lat.toString();
+        params['lon'] = lon.toString();
+    } else {
+        throw new Error("Either location or lat/lon must be provided.");
     }
     
-    const timezone = weatherData.timezone;
-    const current = weatherData.current;
-    const daily = weatherData.daily;
-    const hourly = weatherData.hourly;
+    const weatherData = await fetchFromOpenWeather(params);
+    
+    const timezoneOffset = weatherData.timezone;
 
-    const transformDailyData = (day: any, index: number): DailyData => ({
-        day: formatTimeFromTimestamp(day.dt, timezone, { weekday: 'short' }),
-        condition: mapWeatherCondition(day.weather[0].icon),
-        tempHigh: Math.round(day.temp.max),
-        tempLow: Math.round(day.temp.min),
-        humidity: Math.round(day.humidity),
-    });
+    // Placeholder data for forecast and hourly as the /weather endpoint doesn't provide it.
+    const placeholderDaily: DailyData[] = Array(7).fill(null).map((_, i) => ({
+      day: format(new Date(Date.now() + (i + 1) * 86400000), 'EEE'),
+      condition: 'Sunny',
+      tempHigh: 0,
+      tempLow: 0,
+      humidity: 0,
+    }));
+
+    const placeholderHourly: GetWeatherDataOutput['hourly'] = Array(24).fill(null).map((_, i) => ({
+        time: `${(i % 12) + 1}${i < 12 ? 'am' : 'pm'}`,
+        condition: 'Sunny',
+        temperature: 0,
+        windSpeed: 0,
+        humidity: 0,
+    }));
 
     const transformedData: GetWeatherDataOutput = {
-        location: cityName,
-        condition: mapWeatherCondition(current.weather[0].icon),
-        temperature: Math.round(current.temp),
-        feelsLike: Math.round(current.feels_like),
-        humidity: Math.round(current.humidity),
-        windSpeed: Math.round(current.wind_speed * 3.6), // m/s to km/h
-        sunrise: formatTimeFromTimestamp(current.sunrise, timezone),
-        sunset: formatTimeFromTimestamp(current.sunset, timezone),
-        currentTime: formatTimeFromTimestamp(current.dt, timezone),
-        forecast: daily.slice(0, 7).map(transformDailyData),
-        history: [], // OpenWeather free tier doesn't provide easy history access.
-        hourly: hourly.slice(0, 24).map((hour: any) => ({
-            time: formatTimeFromTimestamp(hour.dt, timezone),
-            condition: mapWeatherCondition(hour.weather[0].icon),
-            temperature: Math.round(hour.temp),
-            windSpeed: Math.round(hour.wind_speed * 3.6),
-            humidity: Math.round(hour.humidity),
-        })),
+        location: weatherData.name,
+        condition: mapWeatherCondition(weatherData.weather[0].icon),
+        temperature: Math.round(weatherData.main.temp),
+        feelsLike: Math.round(weatherData.main.feels_like),
+        humidity: Math.round(weatherData.main.humidity),
+        windSpeed: Math.round(weatherData.wind.speed * 3.6), // m/s to km/h
+        sunrise: formatTimeFromTimestamp(weatherData.sys.sunrise, timezoneOffset),
+        sunset: formatTimeFromTimestamp(weatherData.sys.sunset, timezoneOffset),
+        currentTime: formatTimeFromTimestamp(weatherData.dt, timezoneOffset),
+        forecast: placeholderDaily,
+        history: [], // This endpoint does not provide historical data.
+        hourly: placeholderHourly,
     };
     
     return transformedData;
