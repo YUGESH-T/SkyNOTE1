@@ -133,7 +133,7 @@ const getWeatherDataFlow = ai.defineFlow(
     }
 
     // OpenWeather One Call API provides current, hourly and daily forecasts
-    const weatherData = await fetchFromOpenWeather('data/3.0/onecall', {
+    const weatherData = await fetchFromOpenWeather('data/2.5/onecall', {
         lat: cityLat.toString(),
         lon: cityLon.toString(),
         units: 'metric', // For Celsius
