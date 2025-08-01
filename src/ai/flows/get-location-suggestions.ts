@@ -10,7 +10,6 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import {locations} from '@/lib/weather-data';
 
 const GetLocationSuggestionsInputSchema = z.object({
   input: z.string().describe('The partial or misspelled city name entered by the user.'),
@@ -26,24 +25,47 @@ export async function getLocationSuggestions(input: GetLocationSuggestionsInput)
   return getLocationSuggestionsFlow(input);
 }
 
-const knownCities = locations.map(l => l.location);
-
 const getLocationSuggestionsFlow = ai.defineFlow(
   {
     name: 'getLocationSuggestionsFlow',
     inputSchema: GetLocationSuggestionsInputSchema,
     outputSchema: GetLocationSuggestionsOutputSchema,
   },
-  async input => {
-    if (input.input.length < 2) {
+  async ({ input }) => {
+    if (input.length < 2) {
         return { suggestions: [] };
     }
     
-    const lowercasedInput = input.input.toLowerCase();
-    const suggestions = knownCities
-        .filter(city => city.toLowerCase().includes(lowercasedInput))
-        .slice(0, 5);
+    const apiKey = "888c6f6d1a152bfd3be977d295ab111f";
+    const url = `https://api.openweathermap.org/geo/1.0/direct?q=${input}&limit=5&appid=${apiKey}`;
 
-    return { suggestions };
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            console.error(`Geocoding API request failed with status ${response.status}`);
+            return { suggestions: [] };
+        }
+        const data = await response.json();
+        
+        const suggestions = data.map((item: any) => {
+            let suggestion = item.name;
+            if (item.state) {
+                suggestion += `, ${item.state}`;
+            }
+            if (item.country) {
+                suggestion += `, ${item.country}`;
+            }
+            return suggestion;
+        });
+
+        // Remove duplicates
+        const uniqueSuggestions = [...new Set(suggestions)];
+
+        return { suggestions: uniqueSuggestions };
+
+    } catch (error) {
+        console.error("Failed to fetch suggestions from Geocoding API:", error);
+        return { suggestions: [] };
+    }
   }
 );
