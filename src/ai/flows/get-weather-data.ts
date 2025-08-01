@@ -82,10 +82,8 @@ function formatTimeFromTimestamp(timestamp: number, timezoneOffset: number, opti
   }
 }
 
-async function fetchFromOpenWeather(params: Record<string, string>) {
+async function fetchFromOpenWeather(endpoint: string, params: Record<string, string>) {
     const apiKey = '888c6f6d1a152bfd3be977d295ab111f';
-    const endpoint = 'data/2.5/weather';
-    
     const url = new URL(`https://api.openweathermap.org/${endpoint}`);
     url.searchParams.append('appid', apiKey);
     url.searchParams.append('units', 'metric');
@@ -101,6 +99,15 @@ async function fetchFromOpenWeather(params: Record<string, string>) {
     return response.json();
 }
 
+async function getCoordinatesForLocation(location: string): Promise<{ lat: number; lon: number; name: string; }> {
+    const geocodingData = await fetchFromOpenWeather('geo/1.0/direct', { q: location, limit: '1' });
+    if (!geocodingData || geocodingData.length === 0) {
+        throw new Error(`Could not find coordinates for location: ${location}`);
+    }
+    return { lat: geocodingData[0].lat, lon: geocodingData[0].lon, name: geocodingData[0].name };
+}
+
+
 const getWeatherDataFlow = ai.defineFlow(
   {
     name: 'getWeatherDataFlow',
@@ -108,51 +115,60 @@ const getWeatherDataFlow = ai.defineFlow(
     outputSchema: GetWeatherDataOutputSchema,
   },
   async ({ location, lat, lon }) => {
-    let params: Record<string, string> = {};
+    let queryLat: number, queryLon: number, queryName: string;
 
     if (location) {
-        params['q'] = location;
+        const coords = await getCoordinatesForLocation(location);
+        queryLat = coords.lat;
+        queryLon = coords.lon;
+        queryName = coords.name;
     } else if (lat !== undefined && lon !== undefined) {
-        params['lat'] = lat.toString();
-        params['lon'] = lon.toString();
+        queryLat = lat;
+        queryLon = lon;
+        // Fetch location name if not provided
+        const reverseGeo = await fetchFromOpenWeather('geo/1.0/reverse', { lat: lat.toString(), lon: lon.toString(), limit: '1' });
+        queryName = reverseGeo[0]?.name || 'Current Location';
     } else {
         throw new Error("Either location or lat/lon must be provided.");
     }
     
-    const weatherData = await fetchFromOpenWeather(params);
+    const oneCallData = await fetchFromOpenWeather('data/2.5/onecall', {
+        lat: queryLat.toString(),
+        lon: queryLon.toString(),
+        exclude: 'minutely,alerts',
+    });
     
-    const timezoneOffset = weatherData.timezone;
+    const timezoneOffset = oneCallData.timezone_offset;
 
-    // Placeholder data for forecast and hourly as the /weather endpoint doesn't provide it.
-    const placeholderDaily: GetWeatherDataOutput['forecast'] = Array(7).fill(null).map((_, i) => ({
-      day: format(new Date(Date.now() + (i + 1) * 86400000), 'EEE'),
-      condition: 'Sunny',
-      tempHigh: 0,
-      tempLow: 0,
-      humidity: 0,
+    const forecast = oneCallData.daily.slice(1, 8).map((day: any): DailyData => ({
+        day: format(new Date(day.dt * 1000), 'EEE'),
+        condition: mapWeatherCondition(day.weather[0].icon),
+        tempHigh: Math.round(day.temp.max),
+        tempLow: Math.round(day.temp.min),
+        humidity: Math.round(day.humidity),
     }));
 
-    const placeholderHourly: GetWeatherDataOutput['hourly'] = Array(24).fill(null).map((_, i) => ({
-        time: `${(i % 12) + 1}${i < 12 ? 'am' : 'pm'}`,
-        condition: 'Sunny',
-        temperature: 0,
-        windSpeed: 0,
-        humidity: 0,
+    const hourly = oneCallData.hourly.slice(0, 24).map((hour: any) => ({
+        time: formatTimeFromTimestamp(hour.dt, timezoneOffset, { hour: 'numeric', hour12: true }),
+        condition: mapWeatherCondition(hour.weather[0].icon),
+        temperature: Math.round(hour.temp),
+        windSpeed: Math.round(hour.wind_speed * 3.6),
+        humidity: Math.round(hour.humidity),
     }));
 
     const transformedData: GetWeatherDataOutput = {
-        location: weatherData.name,
-        condition: mapWeatherCondition(weatherData.weather[0].icon),
-        temperature: Math.round(weatherData.main.temp),
-        feelsLike: Math.round(weatherData.main.feels_like),
-        humidity: Math.round(weatherData.main.humidity),
-        windSpeed: Math.round(weatherData.wind.speed * 3.6), // m/s to km/h
-        sunrise: formatTimeFromTimestamp(weatherData.sys.sunrise, timezoneOffset),
-        sunset: formatTimeFromTimestamp(weatherData.sys.sunset, timezoneOffset),
-        currentTime: formatTimeFromTimestamp(weatherData.dt, timezoneOffset),
-        forecast: placeholderDaily,
+        location: queryName,
+        condition: mapWeatherCondition(oneCallData.current.weather[0].icon),
+        temperature: Math.round(oneCallData.current.temp),
+        feelsLike: Math.round(oneCallData.current.feels_like),
+        humidity: Math.round(oneCallData.current.humidity),
+        windSpeed: Math.round(oneCallData.current.wind_speed * 3.6), // m/s to km/h
+        sunrise: formatTimeFromTimestamp(oneCallData.current.sunrise, timezoneOffset),
+        sunset: formatTimeFromTimestamp(oneCallData.current.sunset, timezoneOffset),
+        currentTime: formatTimeFromTimestamp(oneCallData.current.dt, timezoneOffset),
+        forecast: forecast,
         history: [], // This endpoint does not provide historical data.
-        hourly: placeholderHourly,
+        hourly: hourly,
     };
     
     return transformedData;
