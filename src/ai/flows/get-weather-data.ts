@@ -54,19 +54,19 @@ export async function getWeatherData(input: GetWeatherDataInput): Promise<GetWea
   return getWeatherDataFlow(input);
 }
 
-function mapWeatherCondition(iconCode: string): 'Sunny' | 'Cloudy' | 'Rainy' | 'Snowy' | 'Thunderstorm' {
+function mapWeatherCondition(main: string): 'Sunny' | 'Cloudy' | 'Rainy' | 'Snowy' | 'Thunderstorm' {
     const mapping: Record<string, 'Sunny' | 'Cloudy' | 'Rainy' | 'Snowy' | 'Thunderstorm'> = {
-        '01d': 'Sunny', '01n': 'Sunny',
-        '02d': 'Cloudy', '02n': 'Cloudy',
-        '03d': 'Cloudy', '03n': 'Cloudy',
-        '04d': 'Cloudy', '04n': 'Cloudy',
-        '09d': 'Rainy', '09n': 'Rainy',
-        '10d': 'Rainy', '10n': 'Rainy',
-        '11d': 'Thunderstorm', '11n': 'Thunderstorm',
-        '13d': 'Snowy', '13n': 'Snowy',
-        '50d': 'Cloudy', '50n': 'Cloudy' // Mist/fog as cloudy
+        'Clear': 'Sunny',
+        'Clouds': 'Cloudy',
+        'Rain': 'Rainy',
+        'Drizzle': 'Rainy',
+        'Snow': 'Snowy',
+        'Thunderstorm': 'Thunderstorm',
+        'Mist': 'Cloudy',
+        'Fog': 'Cloudy',
+        'Haze': 'Cloudy'
     };
-    return mapping[iconCode] || 'Sunny';
+    return mapping[main] || 'Sunny';
 }
 
 function formatTimeFromTimestamp(timestamp: number, timezoneOffset: number, options?: Intl.DateTimeFormatOptions): string {
@@ -87,13 +87,12 @@ function formatTimeFromTimestamp(timestamp: number, timezoneOffset: number, opti
 
 async function fetchFromOpenWeather(endpoint: string, params: Record<string, string>) {
     const apiKey = "888c6f6d1a152bfd3be977d295ab111f";
-    const url = new URL(`https://api.openweathermap.org/${endpoint}`);
+    const url = new URL(`https://api.openweathermap.org/data/2.5/${endpoint}`);
     url.searchParams.append('appid', apiKey);
     url.searchParams.append('units', 'metric');
     for (const key in params) {
         url.searchParams.append(key, params[key]);
     }
-
     const response = await fetch(url.toString());
     if (!response.ok) {
         const errorBody = await response.text();
@@ -101,15 +100,6 @@ async function fetchFromOpenWeather(endpoint: string, params: Record<string, str
     }
     return response.json();
 }
-
-async function getCoordinatesForLocation(location: string): Promise<{ lat: number; lon: number; name: string }> {
-    const geoData = await fetchFromOpenWeather('geo/1.0/direct', { q: location, limit: '1' });
-    if (!geoData || geoData.length === 0) {
-        throw new Error(`Could not find coordinates for location: ${location}`);
-    }
-    return { lat: geoData[0].lat, lon: geoData[0].lon, name: geoData[0].name };
-}
-
 
 const getWeatherDataFlow = ai.defineFlow(
   {
@@ -119,60 +109,68 @@ const getWeatherDataFlow = ai.defineFlow(
   },
   async ({ location, lat, lon }) => {
     
-    let locationName = location;
-    let effectiveLat = lat;
-    let effectiveLon = lon;
-
+    let queryParams: { q?: string; lat?: string; lon?: string } = {};
     if (location) {
-        const coords = await getCoordinatesForLocation(location);
-        effectiveLat = coords.lat;
-        effectiveLon = coords.lon;
-        locationName = coords.name;
-    }
-
-    if (effectiveLat === undefined || effectiveLon === undefined) {
-        throw new Error("Could not determine coordinates for weather lookup.");
+        queryParams.q = location;
+    } else if (lat !== undefined && lon !== undefined) {
+        queryParams.lat = lat.toString();
+        queryParams.lon = lon.toString();
+    } else {
+        throw new Error("Either location or lat/lon must be provided.");
     }
     
-    const weatherData = await fetchFromOpenWeather('data/2.5/onecall', {
-        lat: effectiveLat.toString(),
-        lon: effectiveLon.toString(),
-        exclude: 'minutely,alerts',
+    const currentWeatherData = await fetchFromOpenWeather('weather', queryParams as Record<string, string>);
+    const forecastData = await fetchFromOpenWeather('forecast', queryParams as Record<string, string>);
+
+    const timezoneOffset = currentWeatherData.timezone;
+
+    const hourly = forecastData.list.slice(0, 8).map((h: any) => ({
+        time: formatTimeFromTimestamp(h.dt, timezoneOffset, { hour: 'numeric', hour12: true }),
+        condition: mapWeatherCondition(h.weather[0].main),
+        temperature: Math.round(h.main.temp),
+        windSpeed: Math.round(h.wind.speed * 3.6),
+        humidity: Math.round(h.main.humidity),
+    }));
+
+    const dailyForecasts: Record<string, { temps: number[], humidities: number[], conditions: string[] }> = {};
+
+    forecastData.list.forEach((item: any) => {
+        const day = format(new Date(item.dt * 1000), 'EEE');
+        if (!dailyForecasts[day]) {
+            dailyForecasts[day] = { temps: [], humidities: [], conditions: [] };
+        }
+        dailyForecasts[day].temps.push(item.main.temp);
+        dailyForecasts[day].humidities.push(item.main.humidity);
+        dailyForecasts[day].conditions.push(item.weather[0].main);
     });
 
-    if (!locationName) {
-        const reverseGeo = await fetchFromOpenWebather('geo/1.0/reverse', { lat: effectiveLat.toString(), lon: effectiveLon.toString(), limit: '1' });
-        locationName = reverseGeo[0]?.name || 'Current Location';
-    }
-    
-    const timezoneOffset = weatherData.timezone_offset;
+    const forecast: DailyData[] = Object.keys(dailyForecasts).slice(0, 7).map(day => {
+        const dayData = dailyForecasts[day];
+        const mostCommonCondition = dayData.conditions.sort((a,b) =>
+              dayData.conditions.filter(v => v===a).length
+            - dayData.conditions.filter(v => v===b).length
+        ).pop()!;
+        
+        return {
+            day: day,
+            condition: mapWeatherCondition(mostCommonCondition),
+            tempHigh: Math.round(Math.max(...dayData.temps)),
+            tempLow: Math.round(Math.min(...dayData.temps)),
+            humidity: Math.round(dayData.humidities.reduce((a, b) => a + b) / dayData.humidities.length),
+        };
+    });
 
-    const forecast = weatherData.daily.slice(0, 7).map((d: any) => ({
-        day: format(new Date(d.dt * 1000), 'EEE'),
-        condition: mapWeatherCondition(d.weather[0].icon),
-        tempHigh: Math.round(d.temp.max),
-        tempLow: Math.round(d.temp.min),
-        humidity: Math.round(d.humidity),
-    }));
-
-    const hourly = weatherData.hourly.slice(0, 24).map((h: any) => ({
-        time: formatTimeFromTimestamp(h.dt, timezoneOffset, { hour: 'numeric', hour12: true }),
-        condition: mapWeatherCondition(h.weather[0].icon),
-        temperature: Math.round(h.temp),
-        windSpeed: Math.round(h.wind_speed * 3.6),
-        humidity: Math.round(h.humidity),
-    }));
 
     const transformedData: GetWeatherDataOutput = {
-        location: locationName!,
-        condition: mapWeatherCondition(weatherData.current.weather[0].icon),
-        temperature: Math.round(weatherData.current.temp),
-        feelsLike: Math.round(weatherData.current.feels_like),
-        humidity: Math.round(weatherData.current.humidity),
-        windSpeed: Math.round(weatherData.current.wind_speed * 3.6),
-        sunrise: formatTimeFromTimestamp(weatherData.current.sunrise, timezoneOffset),
-        sunset: formatTimeFromTimestamp(weatherData.current.sunset, timezoneOffset),
-        currentTime: formatTimeFromTimestamp(weatherData.current.dt, timezoneOffset),
+        location: currentWeatherData.name,
+        condition: mapWeatherCondition(currentWeatherData.weather[0].main),
+        temperature: Math.round(currentWeatherData.main.temp),
+        feelsLike: Math.round(currentWeatherData.main.feels_like),
+        humidity: Math.round(currentWeatherData.main.humidity),
+        windSpeed: Math.round(currentWeatherData.wind.speed * 3.6),
+        sunrise: formatTimeFromTimestamp(currentWeatherData.sys.sunrise, timezoneOffset),
+        sunset: formatTimeFromTimestamp(currentWeatherData.sys.sunset, timezoneOffset),
+        currentTime: formatTimeFromTimestamp(currentWeatherData.dt, timezoneOffset),
         forecast: forecast,
         hourly: hourly,
     };
