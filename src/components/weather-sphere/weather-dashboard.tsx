@@ -145,12 +145,12 @@ export default function WeatherDashboard() {
                                     onRefresh={() => handleFetchNarrative(currentWeather)}
                                 />
                                 <InteractiveHourlyForecast data={currentWeather} />
+                                <SunriseSunset sunrise={currentWeather.sunrise} sunset={currentWeather.sunset} />
                             </div>
                             {/* Right Column */}
                             <div className="lg:col-span-2 flex flex-col gap-4 md:gap-6">
                                 <DailyTemperatureTrend data={currentWeather} />
                                 <WeatherForecast data={currentWeather} />
-                                <SunriseSunset sunrise={currentWeather.sunrise} sunset={currentWeather.sunset} />
                             </div>
                         </div>
                     ): (
