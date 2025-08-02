@@ -25,18 +25,18 @@ export default function CurrentWeather({ data }: CurrentWeatherProps) {
           </div>
           <WeatherIcon condition={data.condition} className="w-20 h-20 md:w-24 md:h-24 text-white drop-shadow-lg" />
         </div>
-        <div className="mt-4 grid grid-cols-3 gap-2 md:gap-4 text-center p-2 md:p-4 bg-white/5 rounded-lg">
-          <div className="flex flex-col items-center gap-1">
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-4 text-center p-2 md:p-4 bg-white/5 rounded-lg">
+          <div className="flex flex-col items-center gap-1 p-2 rounded-lg md:bg-transparent bg-white/5">
             <Thermometer className="w-5 h-5 md:w-6 md:h-6 text-foreground/80" />
             <p className="font-bold text-sm md:text-base">{data.feelsLike}°C</p>
             <p className="text-xs md:text-sm text-foreground/60">Feels Like</p>
           </div>
-          <div className="flex flex-col items-center gap-1">
+          <div className="flex flex-col items-center gap-1 p-2 rounded-lg md:bg-transparent bg-white/5">
             <Droplets className="w-5 h-5 md:w-6 md:h-6 text-foreground/80" />
             <p className="font-bold text-sm md:text-base">{data.humidity}%</p>
             <p className="text-xs md:text-sm text-foreground/60">Humidity</p>
           </div>
-          <div className="flex flex-col items-center gap-1">
+          <div className="flex flex-col items-center gap-1 p-2 rounded-lg md:bg-transparent bg-white/5">
             <Wind className="w-5 h-5 md:w-6 md:h-6 text-foreground/80" />
             <p className="font-bold text-sm md:text-base">{data.windSpeed} km/h</p>
             <p className="text-xs md:text-sm text-foreground/60">Wind</p>
