@@ -162,7 +162,7 @@ export default function WeatherDashboard() {
                              {/* Mobile Only Section */}
                             <div className="lg:hidden flex flex-col gap-4 md:gap-6 mt-4">
                                 <DailyTemperatureTrend data={currentWeather} />
-                                <SunriseSunset sunrise={currentWeather.sunrise} sunset={current.weather.sunset} />
+                                <SunriseSunset sunrise={currentWeather.sunrise} sunset={currentWeather.sunset} />
                                 <WeatherForecast data={currentWeather} />
                             </div>
                         </div>
