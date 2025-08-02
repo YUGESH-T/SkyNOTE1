@@ -134,9 +134,9 @@ export default function WeatherDashboard() {
              <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
                 <div className="w-full">
                     {currentWeather ? (
-                         <div className="grid grid-cols-1 lg:grid-cols-2 lg:gap-8">
-                            {/* Left Column (Desktop) / Main Flow (Mobile) */}
-                            <div className="flex flex-col gap-4 md:gap-6">
+                         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 md:gap-6">
+                            {/* Left Column */}
+                            <div className="lg:col-span-3 flex flex-col gap-4 md:gap-6">
                                 <LocationSelector onLocationSearch={(location) => handleLocationSearch({ location })} isLoading={isSearching} initialLocation={currentWeather.location} />
                                 <CurrentWeather data={currentWeather} />
                                 <WeatherNarrative 
@@ -145,25 +145,12 @@ export default function WeatherDashboard() {
                                     onRefresh={() => handleFetchNarrative(currentWeather)}
                                 />
                                 <InteractiveHourlyForecast data={currentWeather} />
-                                <div className="hidden lg:flex flex-col gap-4 md:gap-6">
-                                    <DailyTemperatureTrend data={currentWeather} />
-                                    <SunriseSunset sunrise={currentWeather.sunrise} sunset={currentWeather.sunset} />
-                                    <WeatherForecast data={currentWeather} />
-                                </div>
                             </div>
-                            {/* Right Column (Desktop) */}
-                            <div className="hidden lg:flex flex-col gap-4 md:gap-6">
-                                {/* This space is intentionally left for the desktop layout restructure.
-                                    The items that were here are now conditionally rendered for desktop in the left column.
-                                    This can be adjusted for a 2-column layout. For now, we follow user's detailed plan.
-                                */}
-                            </div>
-
-                             {/* Mobile Only Section */}
-                            <div className="lg:hidden flex flex-col gap-4 md:gap-6 mt-4">
+                            {/* Right Column */}
+                            <div className="lg:col-span-2 flex flex-col gap-4 md:gap-6">
                                 <DailyTemperatureTrend data={currentWeather} />
-                                <SunriseSunset sunrise={currentWeather.sunrise} sunset={currentWeather.sunset} />
                                 <WeatherForecast data={currentWeather} />
+                                <SunriseSunset sunrise={currentWeather.sunrise} sunset={currentWeather.sunset} />
                             </div>
                         </div>
                     ): (
