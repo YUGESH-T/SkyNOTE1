@@ -20,6 +20,11 @@ const GetWeatherNarrativeOutputSchema = z.object({
 export type GetWeatherNarrativeOutput = z.infer<typeof GetWeatherNarrativeOutputSchema>;
 
 export async function getWeatherNarrative(input: GetWeatherNarrativeInput): Promise<GetWeatherNarrativeOutput> {
+  // Gracefully handle missing API key by checking if the model is available
+  if (!ai.registry.lookup('model', 'googleai/gemini-2.0-flash')) {
+    console.warn("Gemini model not available. Returning a placeholder narrative.");
+    return { narrative: "AI summary is unavailable. Please configure your Google AI API key to enable this feature." };
+  }
   return getWeatherNarrativeFlow(input);
 }
 
@@ -50,12 +55,6 @@ const getWeatherNarrativeFlow = ai.defineFlow(
     outputSchema: GetWeatherNarrativeOutputSchema,
   },
   async input => {
-    // Gracefully handle missing API key
-    if (!process.env.GEMINI_API_KEY && !process.env.GOOGLE_API_KEY) {
-      console.warn("GEMINI_API_KEY or GOOGLE_API_KEY is not set. Returning a placeholder narrative.");
-      return { narrative: "AI summary is unavailable. Please configure your Google AI API key to enable this feature." };
-    }
-
     try {
       const {output} = await prompt({input});
       return output!;
