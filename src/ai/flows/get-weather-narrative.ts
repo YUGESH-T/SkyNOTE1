@@ -50,7 +50,19 @@ const getWeatherNarrativeFlow = ai.defineFlow(
     outputSchema: GetWeatherNarrativeOutputSchema,
   },
   async input => {
-    const {output} = await prompt({input});
-    return output!;
+    // Gracefully handle missing API key
+    if (!process.env.GEMINI_API_KEY && !process.env.GOOGLE_API_KEY) {
+      console.warn("GEMINI_API_KEY or GOOGLE_API_KEY is not set. Returning a placeholder narrative.");
+      return { narrative: "AI summary is unavailable. Please configure your Google AI API key to enable this feature." };
+    }
+
+    try {
+      const {output} = await prompt({input});
+      return output!;
+    } catch (error) {
+       console.error("Error generating weather narrative:", error);
+       // Return a user-friendly error message if the API call fails for other reasons
+       return { narrative: "Could not generate an AI summary at this time. Please try again later." };
+    }
   }
 );
