@@ -2,6 +2,8 @@
 
 Welcome to SKYNOTE, a modern weather application that brings forecasts to life with interactive 3D visualizations. Built with Next.js, Genkit, and Three.js, this project demonstrates how to create a rich, data-driven user experience.
 
+**Live Demo:** [https://sky-note-1.netlify.app/](https://sky-note-1.netlify.app/)
+
 ## SKYNOTE: A Comprehensive Project Breakdown
 
 SKYNOTE is a modern weather application designed to deliver a visually immersive and data-rich experience. Its UI is built on a foundation of clarity, aesthetic appeal, and responsiveness, ensuring it is both beautiful and functional across all devices.
